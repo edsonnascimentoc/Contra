@@ -41,7 +41,7 @@ async function startServer() {
     res.json({ status: 'OK', message: 'National Group India Construction API' });
   });
 
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`🏗️  National Group India Construction Server running on port ${PORT}`);
     console.log(`📊 API Health: http://localhost:${PORT}/api/health`);
     console.log('Server is ready to accept connections...');

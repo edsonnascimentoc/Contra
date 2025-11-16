@@ -1,0 +1,14 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\netlify",
+    "\\server",
+    "\\server\\database",
+    "\\server\\routes",
+    "\\src",
+    "\\src\\lib",
+    "\\src\\routes",
+    "\\static"
+  ],
+  "PreviewInSolutionExplorer": false
+}

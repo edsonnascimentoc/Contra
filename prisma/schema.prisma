@@ -1,0 +1,216 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  SUPERVISOR
+  WORKER
+  CLIENT
+}
+
+enum ProjectStatus {
+  PLANNING
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  COMPLETED
+  BLOCKED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  firstName     String    @map("first_name")
+  lastName      String    @map("last_name")
+  role          UserRole  @default(WORKER)
+  isActive      Boolean   @default(true) @map("is_active")
+  phoneNumber   String?   @map("phone_number")
+  avatarUrl     String?   @map("avatar_url")
+  
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  lastLoginAt   DateTime? @map("last_login_at")
+  
+  createdProjects   Project[]      @relation("ProjectCreator")
+  assignedProjects  ProjectMember[]
+  createdTasks      Task[]         @relation("TaskCreator")
+  assignedTasks     TaskAssignment[]
+  comments          Comment[]
+  activityLogs      ActivityLog[]
+  refreshTokens     RefreshToken[]
+  
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+model RefreshToken {
+  id          String   @id @default(uuid())
+  token       String   @unique
+  userId      String   @map("user_id")
+  expiresAt   DateTime @map("expires_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+model Project {
+  id              String        @id @default(uuid())
+  name            String
+  description     String?       @db.Text
+  status          ProjectStatus @default(PLANNING)
+  startDate       DateTime?     @map("start_date")
+  endDate         DateTime?     @map("end_date")
+  budget          Decimal?      @db.Decimal(15, 2)
+  location        String?
+  clientName      String?       @map("client_name")
+  clientContact   String?       @map("client_contact")
+  
+  createdById     String        @map("created_by_id")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  
+  createdBy       User          @relation("ProjectCreator", fields: [createdById], references: [id])
+  members         ProjectMember[]
+  tasks           Task[]
+  activityLogs    ActivityLog[]
+  
+  @@index([status])
+  @@index([createdById])
+  @@index([startDate])
+  @@map("projects")
+}
+
+model ProjectMember {
+  id          String   @id @default(uuid())
+  projectId   String   @map("project_id")
+  userId      String   @map("user_id")
+  role        String   @default("member")
+  joinedAt    DateTime @default(now()) @map("joined_at")
+  
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+  @@map("project_members")
+}
+
+model Task {
+  id              String       @id @default(uuid())
+  title           String
+  description     String?      @db.Text
+  status          TaskStatus   @default(TODO)
+  priority        TaskPriority @default(MEDIUM)
+  dueDate         DateTime?    @map("due_date")
+  estimatedHours  Decimal?     @map("estimated_hours") @db.Decimal(8, 2)
+  actualHours     Decimal?     @map("actual_hours") @db.Decimal(8, 2)
+  
+  projectId       String       @map("project_id")
+  createdById     String       @map("created_by_id")
+  parentTaskId    String?      @map("parent_task_id")
+  
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+  completedAt     DateTime?    @map("completed_at")
+  
+  project         Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy       User         @relation("TaskCreator", fields: [createdById], references: [id])
+  parentTask      Task?        @relation("TaskSubtasks", fields: [parentTaskId], references: [id])
+  subtasks        Task[]       @relation("TaskSubtasks")
+  assignments     TaskAssignment[]
+  comments        Comment[]
+  activityLogs    ActivityLog[]
+  
+  @@index([projectId])
+  @@index([status])
+  @@index([priority])
+  @@index([dueDate])
+  @@index([createdById])
+  @@map("tasks")
+}
+
+model TaskAssignment {
+  id          String   @id @default(uuid())
+  taskId      String   @map("task_id")
+  userId      String   @map("user_id")
+  assignedAt  DateTime @default(now()) @map("assigned_at")
+  
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([taskId, userId])
+  @@index([taskId])
+  @@index([userId])
+  @@map("task_assignments")
+}
+
+model Comment {
+  id          String   @id @default(uuid())
+  content     String   @db.Text
+  taskId      String   @map("task_id")
+  userId      String   @map("user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([taskId])
+  @@index([userId])
+  @@map("comments")
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  action      String
+  entityType  String   @map("entity_type")
+  entityId    String   @map("entity_id")
+  changes     Json?
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  
+  userId      String?  @map("user_id")
+  projectId   String?  @map("project_id")
+  taskId      String?  @map("task_id")
+  
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task        Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([projectId])
+  @@index([taskId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
