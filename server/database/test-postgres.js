@@ -1,49 +1,26 @@
-const { PrismaClient } =
-    require('@prisma/client');
-const prisma = new PrismaClient
-    ();
+// server/database/test-postgres.js
+import pg from 'pg';
 
-async function testConnection
-    () {
-    try {
-        console.log('🔍 Testando conexão com PostgreSQL...');
+const { Client } = pg;
 
-    // Testar query simples
-    const users = await prisma.
-            user.findMany();
-        console.log('✅ Conexão OK!Usuários encontrados: ',
-users.length);
+const client = new Client({
+  connectionString: 'postgresql://construction_user:construction_pass_2025@localhost:5432/construction_db?schema=public'
+});
 
-        // Testar criação
-        const testUser = await
-            prisma.user.create({
-                data: {
-                    email: 'test@example.com',
-        passwordHash:
-                    'test123',
-                    firstName: 'Test',
-                    lastName: 'User',
-                    role: 'WORKER',
-                },
-            });
-        console.log('✅ Criação OK!User ID: ', testUser.id);
+async function testConnection() {
+  try {
+    await client.connect();
+    console.log('✓ Conexão com PostgreSQL estabelecida com sucesso!');
 
-    // Deletar teste
-    await prisma.user.delete({
-            where: {
-                id: testUser.
-                    id
-            }
-        });
-        console.log('✅ Deleção OK!');
+    const result = await client.query('SELECT version()');
+    console.log('✓ Versão do PostgreSQL:', result.rows[0].version);
 
-    console.log('🎉 Todos os testes passaram!');
+    await client.end();
+    console.log('✓ Conexão encerrada com sucesso!');
   } catch (error) {
-        console.error('❌ Erro:',
-            error);
-    } finally {
-        await prisma.$disconnect();
-    }
+    console.error('✗ Erro ao conectar:', error.message);
+    process.exit(1);
+  }
 }
 
 testConnection();
