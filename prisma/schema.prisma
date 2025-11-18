@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -83,27 +83,26 @@ model RefreshToken {
 model Project {
   id              String        @id @default(uuid())
   name            String
-  description     String?       @db.Text
+  description     String?
   status          ProjectStatus @default(PLANNING)
   startDate       DateTime?     @map("start_date")
   endDate         DateTime?     @map("end_date")
-  budget          Decimal?      @db.Decimal(15, 2)
+  budget          Float?
   location        String?
   clientName      String?       @map("client_name")
   clientContact   String?       @map("client_contact")
-  
+
   createdById     String        @map("created_by_id")
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
-  
+
   createdBy       User          @relation("ProjectCreator", fields: [createdById], references: [id])
   members         ProjectMember[]
   tasks           Task[]
   activityLogs    ActivityLog[]
-  
+
   @@index([status])
   @@index([createdById])
-  @@index([startDate])
   @@map("projects")
 }
 
@@ -113,10 +112,10 @@ model ProjectMember {
   userId      String   @map("user_id")
   role        String   @default("member")
   joinedAt    DateTime @default(now()) @map("joined_at")
-  
+
   project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@unique([projectId, userId])
   @@index([projectId])
   @@index([userId])
@@ -126,12 +125,12 @@ model ProjectMember {
 model Task {
   id              String       @id @default(uuid())
   title           String
-  description     String?      @db.Text
+  description     String?
   status          TaskStatus   @default(TODO)
   priority        TaskPriority @default(MEDIUM)
   dueDate         DateTime?    @map("due_date")
-  estimatedHours  Decimal?     @map("estimated_hours") @db.Decimal(8, 2)
-  actualHours     Decimal?     @map("actual_hours") @db.Decimal(8, 2)
+  estimatedHours  Float?       @map("estimated_hours")
+  actualHours     Float?       @map("actual_hours")
   
   projectId       String       @map("project_id")
   createdById     String       @map("created_by_id")
@@ -174,7 +173,7 @@ model TaskAssignment {
 
 model Comment {
   id          String   @id @default(uuid())
-  content     String   @db.Text
+  content     String
   taskId      String   @map("task_id")
   userId      String   @map("user_id")
   createdAt   DateTime @default(now()) @map("created_at")
