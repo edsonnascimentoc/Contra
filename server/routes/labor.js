@@ -29,7 +29,7 @@ router.get('/type/:type', (req, res) => {
 // Add new labor record
 router.post('/', (req, res) => {
   const { name, designation, department, contact, daily_rate, type } = req.body;
-  
+
   db.run(
     'INSERT INTO labor (name, designation, department, contact, daily_rate, type) VALUES (?, ?, ?, ?, ?, ?)',
     [name, designation, department, contact, daily_rate, type],
@@ -47,7 +47,7 @@ router.post('/', (req, res) => {
 router.put('/:id', (req, res) => {
   const { id } = req.params;
   const { name, designation, department, contact, daily_rate, type, status } = req.body;
-  
+
   db.run(
     'UPDATE labor SET name = ?, designation = ?, department = ?, contact = ?, daily_rate = ?, type = ?, status = ? WHERE id = ?',
     [name, designation, department, contact, daily_rate, type, status, id],
@@ -61,4 +61,17 @@ router.put('/:id', (req, res) => {
   );
 });
 
-export default router;
+// Delete labor record
+router.delete('/:id', (req, res) => {
+  const { id } = req.params;
+
+  db.run('DELETE FROM labor WHERE id = ?', [id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    res.json({ success: true, changes: this.changes });
+  });
+});
+
+export default router;
