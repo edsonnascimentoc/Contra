@@ -347,8 +347,22 @@
 	</main>
 </div>
 {#if showForm}
-	<div class="modal-overlay" on:click={closeForm}>
-		<div class="modal-content" on:click|stopPropagation>
+	<div
+		class="modal-overlay"
+		on:click={closeForm}
+		on:keydown={(e) => e.key === 'Escape' && closeForm()}
+		role="button"
+		tabindex="0"
+		aria-label="Fechar modal"
+	>
+		<div
+			class="modal-content"
+			on:click|stopPropagation
+			on:keydown|stopPropagation
+			role="dialog"
+			aria-modal="true"
+			tabindex="-1"
+		>
 			<h2>{editingId ? 'Editar' : 'Adicionar'} Trabalhador</h2>
 			
 			<form on:submit|preventDefault={saveLabor}>

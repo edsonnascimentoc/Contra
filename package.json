@@ -17,7 +17,11 @@
 		"dev:all": "concurrently \"npm run server\" \"npm run dev\"",
 		"start": "npm run server",
 		"build:server": "echo 'Server build complete'",
-		"postbuild": "cp -r server build/ || copy server build\\ /E"
+		"postbuild": "cp -r server build/ || copy server build\\ /E",
+		"prisma:generate": "prisma generate",
+		"prisma:migrate": "prisma migrate dev",
+		"prisma:seed": "node prisma/seed.js",
+		"prisma:studio": "prisma studio"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^6.0.0",

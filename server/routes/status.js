@@ -3,9 +3,26 @@ import { db } from '../database/init.js';
 
 const router = express.Router();
 
-// Get all status board items
+// Get all status board items with optional date filtering
 router.get('/', (req, res) => {
-  db.all('SELECT * FROM status_board ORDER BY created_at DESC', (err, rows) => {
+  const { startDate, endDate } = req.query;
+
+  let query = 'SELECT * FROM status_board';
+  let params = [];
+
+  // Apply date filter if both dates are provided
+  if (startDate && endDate) {
+    query += ` WHERE (
+      (start_date BETWEEN ? AND ?) OR
+      (end_date BETWEEN ? AND ?) OR
+      (start_date <= ? AND end_date >= ?)
+    )`;
+    params = [startDate, endDate, startDate, endDate, startDate, endDate];
+  }
+
+  query += ' ORDER BY created_at DESC';
+
+  db.all(query, params, (err, rows) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -29,7 +46,7 @@ router.get('/phases', (req, res) => {
 router.put('/phases/:id', (req, res) => {
   const { id } = req.params;
   const { progress, status } = req.body;
-  
+
   db.run(
     'UPDATE construction_phases SET progress = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
     [progress, status, id],
@@ -46,7 +63,7 @@ router.put('/phases/:id', (req, res) => {
 // Create new status item
 router.post('/', (req, res) => {
   const { project_name, phase, status, progress, start_date, end_date } = req.body;
-  
+
   db.run(
     'INSERT INTO status_board (project_name, phase, status, progress, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?)',
     [project_name, phase, status, progress, start_date, end_date],
