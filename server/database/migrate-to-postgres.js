@@ -1,3 +1,19 @@
+// ⚠️ SCRIPT HISTÓRICO - Migração SQLite → PostgreSQL
+//
+// Data de Execução: 12/12/2025
+// Status: ✅ CONCLUÍDA COM SUCESSO
+//
+// Este arquivo é mantido para:
+// - Documentação de como a migração foi realizada
+// - Referência para futuras migrações
+// - Recuperação de dados de backups SQLite (se necessário)
+//
+// ⛔ NÃO EXECUTAR EM PRODUÇÃO - Dados já migrados para PostgreSQL
+// ⛔ O arquivo construction.db foi arquivado em backups/
+//
+// Para mais detalhes, consulte: MIGRACAO_CONCLUIDA.md
+// ============================================================================
+
 // server/database/migrate-to-postgres.js
 
 import sqlite3pkg from 'sqlite3'; // ESM exige import

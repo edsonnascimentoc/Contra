@@ -81,7 +81,7 @@ A comprehensive construction site management application built with SvelteKit fr
 
 ## 🗄️ Database Schema
 
-The application uses SQLite database with the following main tables:
+The application uses **PostgreSQL** database via **Prisma ORM** with the following main tables:
 
 - **status_board**: Project status tracking
 - **construction_phases**: Phase-wise progress tracking
@@ -124,7 +124,8 @@ The application is fully responsive with:
 ### Backend
 - **Node.js**: JavaScript runtime
 - **Express.js**: Web framework
-- **SQLite**: Embedded database
+- **PostgreSQL**: Production database
+- **Prisma**: Modern ORM with type safety
 - **CORS**: Cross-origin requests
 
 ### Development Tools
@@ -165,8 +166,10 @@ Create a `.env` file in the root directory:
 PORT=3001
 NODE_ENV=development
 JWT_SECRET=national_group_construction_secret_key_2025
-DB_PATH=./server/database/construction.db
+DATABASE_URL=postgresql://construction_admin:construction_pass@localhost:5432/construction_db
 ```
+
+**Note:** The application now uses PostgreSQL. For local development, ensure PostgreSQL is running and the database is created. See `prisma/schema.prisma` for the complete schema definition.
 
 ## 🏢 About National Group India
 
