@@ -1,4 +1,4 @@
-# Refatoração da Página de Gerenciamento de Mão de Obra
+﻿# Refatoração da Página de Gerenciamento de Mão de Obra
 
 ## Resumo Executivo
 

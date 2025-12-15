@@ -1,6 +1,10 @@
 // API Configuration for different environments
-const API_BASE = import.meta.env.PROD 
-  ? '/.netlify/functions/api'  // Production (Netlify)
-  : 'http://localhost:3001/api'; // Development
+const isNetlifyProduction = import.meta.env.PROD &&
+  typeof window !== 'undefined' &&
+  (window.location.hostname.includes('netlify.app') || window.location.hostname.includes('netlify.live'));
+
+const API_BASE = isNetlifyProduction
+  ? '/.netlify/functions/api'
+  : 'http://localhost:3001/api';
 
 export { API_BASE };

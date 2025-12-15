@@ -3,61 +3,95 @@ import { db } from '../database/init.js';
 
 const router = express.Router();
 
-// Get all status board items
-router.get('/', (req, res) => {
-  db.all('SELECT * FROM status_board ORDER BY created_at DESC', (err, rows) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json(rows);
-  });
+router.get('/', async (req, res) => {
+  try {
+    const statusBoard = await db.statusBoard.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(statusBoard);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// Get construction phases
-router.get('/phases', (req, res) => {
-  db.all('SELECT * FROM construction_phases ORDER BY created_at DESC', (err, rows) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json(rows);
-  });
-});
-
-// Update phase progress
-router.put('/phases/:id', (req, res) => {
-  const { id } = req.params;
-  const { progress, status } = req.body;
-  
-  db.run(
-    'UPDATE construction_phases SET progress = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-    [progress, status, id],
-    function(err) {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
+router.get('/phases', async (req, res) => {
+  try {
+    const statusData = await db.statusBoard.findMany({
+      select: {
+        id: true,
+        projectName: true,
+        phase: true,
+        status: true,
+        progress: true,
+        startDate: true,
+        endDate: true,
+        createdAt: true,
+        updatedAt: true
+      },
+      orderBy: {
+        createdAt: 'desc'
       }
-      res.json({ id: this.lastID, changes: this.changes });
-    }
-  );
+    });
+
+    res.json(statusData);
+  } catch (error) {
+    console.error('Error fetching status phases:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error.message
+    });
+  }
 });
 
-// Create new status item
-router.post('/', (req, res) => {
-  const { project_name, phase, status, progress, start_date, end_date } = req.body;
-  
-  db.run(
-    'INSERT INTO status_board (project_name, phase, status, progress, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?)',
-    [project_name, phase, status, progress, start_date, end_date],
-    function(err) {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
+router.post('/', async (req, res) => {
+  try {
+    const { project_name, phase, status, progress, start_date, end_date } = req.body;
+    
+    const statusItem = await db.statusBoard.create({
+      data: {
+        projectName: project_name,
+        phase,
+        status,
+        progress: progress || 0,
+        startDate: start_date ? new Date(start_date) : null,
+        endDate: end_date ? new Date(end_date) : null
       }
-      res.json({ id: this.lastID });
-    }
-  );
+    });
+    res.json(statusItem);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { progress, status } = req.body;
+    
+    const updateData = {};
+    if (progress !== undefined) updateData.progress = progress;
+    if (status !== undefined) updateData.status = status;
+    
+    const statusItem = await db.statusBoard.update({
+      where: { id },
+      data: updateData
+    });
+    res.json(statusItem);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.statusBoard.delete({
+      where: { id }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 export default router;

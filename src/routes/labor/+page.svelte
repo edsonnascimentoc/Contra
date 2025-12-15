@@ -1,14 +1,16 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Users, Plus, Edit, Trash2, Search } from 'lucide-svelte';
-	import { API_BASE } from '$lib/config.js';
-	
+	import { fetchAPI } from '$lib/api';
+
 	let laborData: any[] = [];
 	let filteredData: any[] = [];
 	let showForm = false;
 	let editingId: number | null = null;
 	let searchTerm = '';
 	let filterType = 'ALL';
+	let loading = true;
+	let error: string | null = null;
 	let formData = {
 		name: '',
 		designation: '',
@@ -18,18 +20,23 @@
 		type: 'STAFF',
 		status: 'ACTIVE'
 	};
-	
+
 	onMount(async () => {
 		await fetchLabor();
 	});
-	
+
 	async function fetchLabor() {
+		loading = true;
+		error = null;
+
 		try {
-			const response = await fetch(`${API_BASE}/labor`);
-			laborData = await response.json();
+			laborData = await fetchAPI<any[]>('/labor');
 			applyFilters();
-		} catch (error) {
-			console.error('Erro ao buscar dados de mão de obra:', error);
+		} catch (err: any) {
+			error = err.message;
+			console.error('❌ Erro ao buscar dados de mão de obra:', err);
+		} finally {
+			loading = false;
 		}
 	}
 	
@@ -248,42 +255,64 @@
 		<div class="filters-card">
 			<div class="search-box">
 				<Search size={20} style="color: #6b7280;" />
-				<input 
-					type="text" 
-					placeholder="Buscar por nome, cargo ou departamento..." 
+				<input
+					type="text"
+					placeholder="Buscar por nome, cargo ou departamento..."
 					bind:value={searchTerm}
+					on:input={applyFilters}
 				/>
 			</div>
-			
+
 			<div class="filter-buttons">
-				<button 
+				<button
 					class="filter-btn {filterType === 'ALL' ? 'active' : ''}"
-					on:click={() => filterType = 'ALL'}
+					on:click={() => { filterType = 'ALL'; applyFilters(); }}
 				>
 					Todos ({laborData.length})
 				</button>
-				<button 
+				<button
 					class="filter-btn {filterType === 'STAFF' ? 'active' : ''}"
-					on:click={() => filterType = 'STAFF'}
+					on:click={() => { filterType = 'STAFF'; applyFilters(); }}
 				>
 					Funcionários ({laborData.filter(l => l.type === 'STAFF').length})
 				</button>
-				<button 
+				<button
 					class="filter-btn {filterType === 'NMT' ? 'active' : ''}"
-					on:click={() => filterType = 'NMT'}
+					on:click={() => { filterType = 'NMT'; applyFilters(); }}
 				>
 					NMT ({laborData.filter(l => l.type === 'NMT').length})
 				</button>
-				<button 
+				<button
 					class="filter-btn {filterType === 'CONTRACT' ? 'active' : ''}"
-					on:click={() => filterType = 'CONTRACT'}
+					on:click={() => { filterType = 'CONTRACT'; applyFilters(); }}
 				>
 					Contratados ({laborData.filter(l => l.type === 'CONTRACT').length})
 				</button>
 			</div>
 		</div>
 
-		<div class="card">
+		{#if loading}
+			<div class="loading-state">
+				<div class="spinner"></div>
+				<p>Carregando dados...</p>
+			</div>
+		{:else if error}
+			<div class="error-state">
+				<h3>⚠️ Erro ao Carregar Dados</h3>
+				<p>{error}</p>
+				<button on:click={fetchLabor} class="btn-retry">Tentar Novamente</button>
+			</div>
+		{:else if laborData.length === 0}
+			<div class="empty-state">
+				<h3>📋 Nenhum registro encontrado</h3>
+				<p>Comece adicionando seu primeiro registro de mão de obra.</p>
+				<button on:click={() => openForm()} class="btn-primary">
+					<Plus size={20} style="margin-right: 0.5rem;" />
+					Adicionar Primeiro Registro
+				</button>
+			</div>
+		{:else}
+			<div class="card">
 			<div class="table-container">
 				<table class="data-table">
 					<thead>
@@ -344,19 +373,20 @@
 				</table>
 			</div>
 		</div>
+		{/if}
 	</main>
 </div>
 {#if showForm}
-	<div class="modal-overlay" on:click={closeForm}>
-		<div class="modal-content" on:click|stopPropagation>
+	<div class="modal-overlay" role="button" tabindex="0" on:click={closeForm} on:keydown={(e) => e.key === 'Escape' && closeForm()}>
+		<div class="modal-content" role="dialog" tabindex="-1" on:click|stopPropagation on:keydown={(e) => e.key === 'Escape' && closeForm()}>
 			<h2>{editingId ? 'Editar' : 'Adicionar'} Trabalhador</h2>
-			
+
 			<form on:submit|preventDefault={saveLabor}>
 				<div class="form-group">
 					<label for="name">Nome Completo *</label>
 					<input type="text" id="name" bind:value={formData.name} required placeholder="Digite o nome completo" />
 				</div>
-				
+
 				<div class="form-row">
 					<div class="form-group">
 						<label for="designation">Cargo</label>
@@ -517,6 +547,85 @@
 		background: transparent;
 		font-size: 1rem;
 		outline: none;
+	}
+
+	.loading-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 4rem 2rem;
+		color: white;
+		background: rgba(255, 255, 255, 0.1);
+		border-radius: 12px;
+		backdrop-filter: blur(10px);
+	}
+
+	.spinner {
+		width: 50px;
+		height: 50px;
+		border: 4px solid rgba(255, 255, 255, 0.3);
+		border-top-color: white;
+		border-radius: 50%;
+		animation: spin 1s linear infinite;
+		margin-bottom: 1rem;
+	}
+
+	@keyframes spin {
+		to { transform: rotate(360deg); }
+	}
+
+	.error-state {
+		background: white;
+		border: 2px solid #ef4444;
+		border-radius: 12px;
+		padding: 2rem;
+		text-align: center;
+		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	}
+
+	.error-state h3 {
+		color: #dc2626;
+		margin: 0 0 1rem 0;
+	}
+
+	.error-state p {
+		color: #666;
+		margin: 0 0 1.5rem 0;
+	}
+
+	.btn-retry {
+		background: #667eea;
+		color: white;
+		border: none;
+		padding: 0.75rem 1.5rem;
+		border-radius: 6px;
+		cursor: pointer;
+		font-size: 1rem;
+		transition: background 0.2s;
+	}
+
+	.btn-retry:hover {
+		background: #5568d3;
+	}
+
+	.empty-state {
+		background: white;
+		border-radius: 12px;
+		padding: 3rem 2rem;
+		text-align: center;
+		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	}
+
+	.empty-state h3 {
+		color: #374151;
+		margin: 0 0 0.5rem 0;
+		font-size: 1.5rem;
+	}
+
+	.empty-state p {
+		color: #6b7280;
+		margin: 0 0 1.5rem 0;
 	}
 
 	.filter-buttons {

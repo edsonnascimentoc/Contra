@@ -3,90 +3,89 @@ import { db } from '../database/init.js';
 
 const router = express.Router();
 
-// Get all materials
-router.get('/', (req, res) => {
-  db.all('SELECT * FROM materials ORDER BY name', (err, rows) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json(rows);
-  });
+router.get('/', async (req, res) => {
+  try {
+    const materials = await db.material.findMany({
+      orderBy: { name: 'asc' }
+    });
+    res.json(materials);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// Get plant & machinery
-router.get('/pm', (req, res) => {
-  db.all('SELECT * FROM plant_machinery ORDER BY name', (err, rows) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json(rows);
-  });
+router.get('/category/:category', async (req, res) => {
+  try {
+    const { category } = req.params;
+    const materials = await db.material.findMany({
+      where: { category },
+      orderBy: { name: 'asc' }
+    });
+    res.json(materials);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// Get materials by category
-router.get('/category/:category', (req, res) => {
-  const { category } = req.params;
-  db.all('SELECT * FROM materials WHERE category = ? ORDER BY name', [category], (err, rows) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json(rows);
-  });
-});
-
-// Add new material
-router.post('/', (req, res) => {
-  const { name, category, quantity, unit, rate, supplier } = req.body;
-  
-  db.run(
-    'INSERT INTO materials (name, category, quantity, unit, rate, supplier) VALUES (?, ?, ?, ?, ?, ?)',
-    [name, category, quantity, unit, rate, supplier],
-    function(err) {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
+router.post('/', async (req, res) => {
+  try {
+    const { name, category, quantity, unit, costPerUnit, supplier, deliveryDate, status } = req.body;
+    const totalCost = costPerUnit ? quantity * costPerUnit : null;
+    
+    const material = await db.material.create({
+      data: {
+        name,
+        category,
+        quantity,
+        unit,
+        costPerUnit,
+        totalCost,
+        supplier,
+        deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
+        status: status || 'ORDERED'
       }
-      res.json({ id: this.lastID });
-    }
-  );
+    });
+    res.json(material);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// Add plant & machinery
-router.post('/pm', (req, res) => {
-  const { name, type, model, ownership, rate, operator } = req.body;
-  
-  db.run(
-    'INSERT INTO plant_machinery (name, type, model, ownership, rate, operator) VALUES (?, ?, ?, ?, ?, ?)',
-    [name, type, model, ownership, rate, operator],
-    function(err) {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { quantity, status, costPerUnit } = req.body;
+    
+    const updateData = {};
+    if (quantity !== undefined) updateData.quantity = quantity;
+    if (status !== undefined) updateData.status = status;
+    if (costPerUnit !== undefined) {
+      updateData.costPerUnit = costPerUnit;
+      if (quantity !== undefined) {
+        updateData.totalCost = quantity * costPerUnit;
       }
-      res.json({ id: this.lastID });
     }
-  );
+    
+    const material = await db.material.update({
+      where: { id },
+      data: updateData
+    });
+    res.json(material);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// Update material quantity
-router.put('/:id', (req, res) => {
-  const { id } = req.params;
-  const { quantity, status } = req.body;
-  
-  db.run(
-    'UPDATE materials SET quantity = ?, status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-    [quantity, status, id],
-    function(err) {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
-      }
-      res.json({ id: this.lastID, changes: this.changes });
-    }
-  );
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.material.delete({
+      where: { id }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 export default router;

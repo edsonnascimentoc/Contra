@@ -3,75 +3,81 @@ import { db } from '../database/init.js';
 
 const router = express.Router();
 
-// Get all labor records
-router.get('/', (req, res) => {
-  db.all('SELECT * FROM labor ORDER BY name', (err, rows) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json(rows);
-  });
+router.get('/', async (req, res) => {
+  try {
+    const labor = await db.labor.findMany({
+      orderBy: { name: 'asc' }
+    });
+    res.json(labor);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// Get labor by type (STAFF, NMT, CONTRACT)
-router.get('/type/:type', (req, res) => {
-  const { type } = req.params;
-  db.all('SELECT * FROM labor WHERE type = ? ORDER BY name', [type], (err, rows) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json(rows);
-  });
+router.get('/type/:type', async (req, res) => {
+  try {
+    const { type } = req.params;
+    const labor = await db.labor.findMany({
+      where: { type },
+      orderBy: { name: 'asc' }
+    });
+    res.json(labor);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// Add new labor record
-router.post('/', (req, res) => {
-  const { name, designation, department, contact, daily_rate, type } = req.body;
-
-  db.run(
-    'INSERT INTO labor (name, designation, department, contact, daily_rate, type) VALUES (?, ?, ?, ?, ?, ?)',
-    [name, designation, department, contact, daily_rate, type],
-    function(err) {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
+router.post('/', async (req, res) => {
+  try {
+    const { name, designation, department, contact, daily_rate, type } = req.body;
+    const labor = await db.labor.create({
+      data: {
+        name,
+        designation,
+        department,
+        contact,
+        dailyRate: daily_rate,
+        type
       }
-      res.json({ id: this.lastID });
-    }
-  );
+    });
+    res.json(labor);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// Update labor record
-router.put('/:id', (req, res) => {
-  const { id } = req.params;
-  const { name, designation, department, contact, daily_rate, type, status } = req.body;
-
-  db.run(
-    'UPDATE labor SET name = ?, designation = ?, department = ?, contact = ?, daily_rate = ?, type = ?, status = ? WHERE id = ?',
-    [name, designation, department, contact, daily_rate, type, status, id],
-    function(err) {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, designation, department, contact, daily_rate, type, status } = req.body;
+    const labor = await db.labor.update({
+      where: { id },
+      data: {
+        name,
+        designation,
+        department,
+        contact,
+        dailyRate: daily_rate,
+        type,
+        status
       }
-      res.json({ id: this.lastID, changes: this.changes });
-    }
-  );
+    });
+    res.json(labor);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// Delete labor record
-router.delete('/:id', (req, res) => {
-  const { id } = req.params;
-
-  db.run('DELETE FROM labor WHERE id = ?', [id], function(err) {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json({ success: true, changes: this.changes });
-  });
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.labor.delete({
+      where: { id }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-export default router;
+export default router;

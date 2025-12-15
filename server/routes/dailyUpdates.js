@@ -3,138 +3,148 @@ import { db } from '../database/init.js';
 
 const router = express.Router();
 
-// Get daily updates with date filtering
-router.get('/', (req, res) => {
-  const { startDate, endDate } = req.query;
-  let query = 'SELECT * FROM daily_updates';
-  let params = [];
+router.get('/', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const where = {};
 
-  if (startDate && endDate) {
-    query += ' WHERE date BETWEEN ? AND ?';
-    params = [startDate, endDate];
+    if (startDate && endDate) {
+      where.date = {
+        gte: new Date(startDate),
+        lte: new Date(endDate)
+      };
+    }
+
+    const updates = await db.dailyUpdate.findMany({
+      where,
+      orderBy: [
+        { date: 'desc' },
+        { createdAt: 'desc' }
+      ]
+    });
+    res.json(updates);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
-
-  query += ' ORDER BY date DESC, created_at DESC';
-
-  db.all(query, params, (err, rows) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    res.json(rows);
-  });
 });
 
-// Get daily update by date
-router.get('/date/:date', (req, res) => {
-  const { date } = req.params;
-  db.all('SELECT * FROM daily_updates WHERE date = ? ORDER BY shift', [date], (err, rows) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
+router.get('/stats', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const where = {};
+
+    if (startDate && endDate) {
+      where.date = {
+        gte: new Date(startDate),
+        lte: new Date(endDate)
+      };
     }
-    res.json(rows);
-  });
-});
 
-// Create daily update
-router.post('/', (req, res) => {
-  const {
-    date,
-    shift,
-    weather,
-    manpower_present,
-    work_description,
-    progress_percentage,
-    materials_used,
-    equipment_used,
-    safety_incidents,
-    quality_checks,
-    issues,
-    photos,
-    created_by
-  } = req.body;
-
-  db.run(
-    `INSERT INTO daily_updates 
-     (date, shift, weather, manpower_present, work_description, progress_percentage, 
-      materials_used, equipment_used, safety_incidents, quality_checks, issues, photos, created_by) 
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [date, shift, weather, manpower_present, work_description, progress_percentage,
-     materials_used, equipment_used, safety_incidents, quality_checks, issues, 
-     JSON.stringify(photos || []), created_by],
-    function(err) {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
+    const updates = await db.dailyUpdate.findMany({
+      where,
+      select: {
+        laborCount: true,
+        issues: true
       }
-      res.json({ id: this.lastID });
-    }
-  );
-});
+    });
 
-// Update daily update
-router.put('/:id', (req, res) => {
-  const { id } = req.params;
-  const {
-    weather,
-    manpower_present,
-    work_description,
-    progress_percentage,
-    materials_used,
-    equipment_used,
-    safety_incidents,
-    quality_checks,
-    issues,
-    photos
-  } = req.body;
+    const totalManpower = updates.reduce((sum, u) => sum + u.laborCount, 0);
+    const avgManpower = updates.length > 0 ? totalManpower / updates.length : 0;
+    const totalSafetyIncidents = updates.filter(u => u.issues && u.issues.toLowerCase().includes('safety')).length;
 
-  db.run(
-    `UPDATE daily_updates SET 
-     weather = ?, manpower_present = ?, work_description = ?, progress_percentage = ?,
-     materials_used = ?, equipment_used = ?, safety_incidents = ?, quality_checks = ?,
-     issues = ?, photos = ?
-     WHERE id = ?`,
-    [weather, manpower_present, work_description, progress_percentage,
-     materials_used, equipment_used, safety_incidents, quality_checks, issues,
-     JSON.stringify(photos || []), id],
-    function(err) {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
-      }
-      res.json({ id: this.lastID, changes: this.changes });
-    }
-  );
-});
-
-// Get summary statistics
-router.get('/stats', (req, res) => {
-  const { startDate, endDate } = req.query;
-  let dateFilter = '';
-  let params = [];
-
-  if (startDate && endDate) {
-    dateFilter = ' WHERE date BETWEEN ? AND ?';
-    params = [startDate, endDate];
+    res.json({
+      total_updates: updates.length,
+      total_manpower: totalManpower,
+      avg_manpower: avgManpower,
+      total_safety_incidents: totalSafetyIncidents
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
+});
 
-  db.get(
-    `SELECT 
-       COUNT(*) as total_updates,
-       AVG(manpower_present) as avg_manpower,
-       AVG(progress_percentage) as avg_progress,
-       SUM(safety_incidents) as total_safety_incidents
-     FROM daily_updates${dateFilter}`,
-    params,
-    (err, row) => {
-      if (err) {
-        res.status(500).json({ error: err.message });
-        return;
+router.get('/date/:date', async (req, res) => {
+  try {
+    const { date } = req.params;
+    const updates = await db.dailyUpdate.findMany({
+      where: {
+        date: new Date(date)
+      },
+      orderBy: { createdAt: 'asc' }
+    });
+    res.json(updates);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/', async (req, res) => {
+  try {
+    const {
+      date,
+      weather,
+      workDone,
+      laborCount,
+      issues,
+      photos,
+      createdBy
+    } = req.body;
+
+    const update = await db.dailyUpdate.create({
+      data: {
+        date: new Date(date),
+        weather,
+        workDone,
+        laborCount: parseInt(laborCount),
+        issues,
+        photos: photos ? JSON.stringify(photos) : null,
+        createdBy
       }
-      res.json(row);
-    }
-  );
+    });
+    res.json(update);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      weather,
+      workDone,
+      laborCount,
+      issues,
+      photos
+    } = req.body;
+
+    const updateData = {};
+    if (weather !== undefined) updateData.weather = weather;
+    if (workDone !== undefined) updateData.workDone = workDone;
+    if (laborCount !== undefined) updateData.laborCount = parseInt(laborCount);
+    if (issues !== undefined) updateData.issues = issues;
+    if (photos !== undefined) updateData.photos = JSON.stringify(photos);
+
+    const update = await db.dailyUpdate.update({
+      where: { id },
+      data: updateData
+    });
+    res.json(update);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.dailyUpdate.delete({
+      where: { id }
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 export default router;

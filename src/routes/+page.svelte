@@ -1,40 +1,45 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Building, Users, Package, Activity, Calendar, TrendingUp } from 'lucide-svelte';
-	import { API_BASE } from '$lib/config.js';
-	
+	import { fetchAPI } from '$lib/api';
+
 	let statusData: any[] = [];
 	let phases: any[] = [];
 	let dailyStats: any = {};
+	let loading = true;
+	let error: string | null = null;
 	let selectedDateRange = {
 		start: new Date().toISOString().split('T')[0],
 		end: new Date().toISOString().split('T')[0]
 	};
-	
+
 	onMount(async () => {
 		await fetchData();
 	});
-	
+
 	async function fetchData() {
+		loading = true;
+		error = null;
+
 		try {
-			// Fetch status board data
-			const statusResponse = await fetch(`${API_BASE}/status`);
-			statusData = await statusResponse.json();
-			
-			// Fetch construction phases
-			const phasesResponse = await fetch(`${API_BASE}/status/phases`);
-			phases = await phasesResponse.json();
-			
-			// Fetch daily stats
-			const statsResponse = await fetch(`${API_BASE}/daily-updates/stats?startDate=${selectedDateRange.start}&endDate=${selectedDateRange.end}`);
-			dailyStats = await statsResponse.json();
-		} catch (error) {
-			console.error('Failed to fetch data:', error);
+			const statusResp = await fetchAPI<any[]>('/status');
+			statusData = Array.isArray(statusResp) ? statusResp : [];
+
+			const phasesResp = await fetchAPI<any[]>('/status/phases');
+			phases = Array.isArray(phasesResp) ? phasesResp : [];
+
+			const dailyStatsResp = await fetchAPI<any>(`/daily-updates/stats?startDate=${selectedDateRange.start}&endDate=${selectedDateRange.end}`);
+			dailyStats = dailyStatsResp && typeof dailyStatsResp === 'object' ? dailyStatsResp : {};
+		} catch (err: any) {
+			error = err.message || 'Erro desconhecido ao buscar dados.';
+			console.error('Failed to fetch data:', err);
+		} finally {
+			loading = false;
 		}
 	}
-	
+
 	function getStatusColor(status: string) {
-		switch (status.toLowerCase()) {
+		switch (status?.toLowerCase?.()) {
 			case 'completed': return 'status-completed';
 			case 'in_progress': case 'in-progress': return 'status-in-progress';
 			case 'not_started': case 'not-started': return 'status-not-started';
@@ -42,9 +47,9 @@
 			default: return 'status-not-started';
 		}
 	}
-	
+
 	function formatStatus(status: string) {
-		return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+		return status ? status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : '';
 	}
 </script>
 
@@ -92,32 +97,44 @@
 			<p class="subtitle">Real-time overview of all construction activities • {new Date().toLocaleDateString('en-IN')}</p>
 		</div>
 
-		<!-- Dashboard Statistics -->
-		<div class="dashboard-grid">
-			<div class="stat-card">
-				<div class="stat-number">{statusData.length}</div>
-				<div class="stat-label">Active Projects</div>
+		{#if loading}
+			<div class="loading-state">
+				<div class="spinner"></div>
+				<p>Loading data...</p>
 			</div>
-			<div class="stat-card">
-				<div class="stat-number">{phases.filter(p => p.status === 'IN_PROGRESS').length}</div>
-				<div class="stat-label">Phases in Progress</div>
+		{:else if error}
+			<div class="error-state">
+				<h3>⚠️ Error Loading Data</h3>
+				<p>{error}</p>
+				<button on:click={fetchData} class="btn-retry">Try Again</button>
 			</div>
-			<div class="stat-card">
-				<div class="stat-number">{Math.round(dailyStats.avg_manpower || 0)}</div>
-				<div class="stat-label">Average Manpower</div>
+		{:else}
+			<!-- Dashboard Statistics -->
+			<div class="dashboard-grid">
+				<div class="stat-card">
+					<div class="stat-number">{statusData.length}</div>
+					<div class="stat-label">Active Projects</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-number">{phases.filter(p => p.status === 'IN_PROGRESS').length}</div>
+					<div class="stat-label">Phases in Progress</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-number">{Math.round(dailyStats.avg_manpower || 0)}</div>
+					<div class="stat-label">Average Manpower</div>
+				</div>
+				<div class="stat-card">
+					<div class="stat-number">{dailyStats.total_safety_incidents || 0}</div>
+					<div class="stat-label">Safety Incidents</div>
+				</div>
 			</div>
-			<div class="stat-card">
-				<div class="stat-number">{dailyStats.total_safety_incidents || 0}</div>
-				<div class="stat-label">Safety Incidents</div>
-			</div>
-		</div>
 
-		<!-- Date Range Control -->
-		<div class="card">
-			<div class="card-header">
-				<h3 class="card-title">📅 Date Range Filter</h3>
-			</div>
-			<div style="display: flex; gap: 1rem; align-items: end;">
+			<!-- Date Range Control -->
+			<div class="card">
+				<div class="card-header">
+					<h3 class="card-title">📅 Date Range Filter</h3>
+				</div>
+				<div style="display: flex; gap: 1rem; align-items: end;">
 				<div class="form-group" style="margin-bottom: 0;">
 					<label class="form-label" for="start-date">Start Date</label>
 					<input id="start-date" type="date" class="form-input" bind:value={selectedDateRange.start} on:change={fetchData} />
@@ -215,6 +232,7 @@
 				<button class="btn btn-secondary">📊 Generate Report</button>
 			</div>
 		</div>
+		{/if}
 	</main>
 </div>
 
@@ -222,9 +240,66 @@
 	.table-container {
 		overflow-x: auto;
 	}
-	
+
 	.nav-item {
 		display: flex;
 		align-items: center;
+	}
+
+	.loading-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 4rem 2rem;
+		color: var(--text-light);
+	}
+
+	.spinner {
+		width: 50px;
+		height: 50px;
+		border: 4px solid rgba(0, 0, 0, 0.1);
+		border-top-color: var(--primary);
+		border-radius: 50%;
+		animation: spin 1s linear infinite;
+		margin-bottom: 1rem;
+	}
+
+	@keyframes spin {
+		to { transform: rotate(360deg); }
+	}
+
+	.error-state {
+		background: #fee;
+		border: 1px solid #fcc;
+		border-radius: 8px;
+		padding: 2rem;
+		text-align: center;
+		margin: 2rem 0;
+	}
+
+	.error-state h3 {
+		color: #c33;
+		margin: 0 0 1rem 0;
+	}
+
+	.error-state p {
+		color: #666;
+		margin: 0 0 1.5rem 0;
+	}
+
+	.btn-retry {
+		background: var(--primary);
+		color: white;
+		border: none;
+		padding: 0.75rem 1.5rem;
+		border-radius: 6px;
+		cursor: pointer;
+		font-size: 1rem;
+		transition: background 0.2s;
+	}
+
+	.btn-retry:hover {
+		background: var(--primary-dark);
 	}
 </style>

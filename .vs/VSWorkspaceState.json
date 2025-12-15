@@ -1,14 +1,7 @@
 {
   "ExpandedNodes": [
-    "",
-    "\\netlify",
-    "\\server",
-    "\\server\\database",
-    "\\server\\routes",
-    "\\src",
-    "\\src\\lib",
-    "\\src\\routes",
-    "\\static"
+    ""
   ],
+  "SelectedNode": "\\INSTALLATION_GUIDE.md",
   "PreviewInSolutionExplorer": false
 }

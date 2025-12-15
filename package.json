@@ -10,6 +10,7 @@
 		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",
+		"preview:full": "concurrently \"npm run server\" \"npm run preview -- --host\"",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
@@ -17,10 +18,11 @@
 		"dev:all": "concurrently \"npm run server\" \"npm run dev\"",
 		"start": "npm run server",
 		"build:server": "echo 'Server build complete'",
-		"postbuild": "cp -r server build/ || copy server build\\ /E"
+		"postbuild": "node -e \"require('fs').cpSync('server', 'build/server', {recursive: true})\""
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^6.0.0",
+		"@sveltejs/adapter-node": "^5.4.0",
 		"@sveltejs/kit": "^2.22.0",
 		"@sveltejs/vite-plugin-svelte": "^6.0.0",
 		"@types/bcryptjs": "^2.4.6",
@@ -51,7 +53,6 @@
 		"lucide-svelte": "^0.542.0",
 		"pg": "^8.16.3",
 		"serverless-http": "^4.0.0",
-		"sqlite3": "^5.1.7",
 		"winston": "^3.18.3",
 		"zod": "^4.1.12"
 	}

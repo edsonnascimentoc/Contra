@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -48,11 +48,11 @@ model User {
   isActive      Boolean   @default(true) @map("is_active")
   phoneNumber   String?   @map("phone_number")
   avatarUrl     String?   @map("avatar_url")
-  
+
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   lastLoginAt   DateTime? @map("last_login_at")
-  
+
   createdProjects   Project[]      @relation("ProjectCreator")
   assignedProjects  ProjectMember[]
   createdTasks      Task[]         @relation("TaskCreator")
@@ -60,7 +60,7 @@ model User {
   comments          Comment[]
   activityLogs      ActivityLog[]
   refreshTokens     RefreshToken[]
-  
+
   @@index([email])
   @@index([role])
   @@map("users")
@@ -72,9 +72,9 @@ model RefreshToken {
   userId      String   @map("user_id")
   expiresAt   DateTime @map("expires_at")
   createdAt   DateTime @default(now()) @map("created_at")
-  
+
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([userId])
   @@index([token])
   @@map("refresh_tokens")
@@ -131,15 +131,15 @@ model Task {
   dueDate         DateTime?    @map("due_date")
   estimatedHours  Float?       @map("estimated_hours")
   actualHours     Float?       @map("actual_hours")
-  
+
   projectId       String       @map("project_id")
   createdById     String       @map("created_by_id")
   parentTaskId    String?      @map("parent_task_id")
-  
+
   createdAt       DateTime     @default(now()) @map("created_at")
   updatedAt       DateTime     @updatedAt @map("updated_at")
   completedAt     DateTime?    @map("completed_at")
-  
+
   project         Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   createdBy       User         @relation("TaskCreator", fields: [createdById], references: [id])
   parentTask      Task?        @relation("TaskSubtasks", fields: [parentTaskId], references: [id])
@@ -147,7 +147,7 @@ model Task {
   assignments     TaskAssignment[]
   comments        Comment[]
   activityLogs    ActivityLog[]
-  
+
   @@index([projectId])
   @@index([status])
   @@index([priority])
@@ -161,10 +161,10 @@ model TaskAssignment {
   taskId      String   @map("task_id")
   userId      String   @map("user_id")
   assignedAt  DateTime @default(now()) @map("assigned_at")
-  
+
   task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@unique([taskId, userId])
   @@index([taskId])
   @@index([userId])
@@ -178,10 +178,10 @@ model Comment {
   userId      String   @map("user_id")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
-  
+
   task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([taskId])
   @@index([userId])
   @@map("comments")
@@ -195,21 +195,105 @@ model ActivityLog {
   changes     Json?
   ipAddress   String?  @map("ip_address")
   userAgent   String?  @map("user_agent")
-  
+
   userId      String?  @map("user_id")
   projectId   String?  @map("project_id")
   taskId      String?  @map("task_id")
-  
+
   createdAt   DateTime @default(now()) @map("created_at")
-  
+
   user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   project     Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   task        Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  
+
   @@index([userId])
   @@index([projectId])
   @@index([taskId])
   @@index([entityType, entityId])
   @@index([createdAt])
   @@map("activity_logs")
+}
+
+enum LaborType {
+  STAFF
+  NMT
+  CONTRACT
+}
+
+enum LaborStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Labor {
+  id          String       @id @default(uuid())
+  name        String
+  designation String?
+  department  String?
+  contact     String?
+  dailyRate   Float?       @map("daily_rate")
+  type        LaborType
+  status      LaborStatus  @default(ACTIVE)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  @@index([type])
+  @@index([status])
+  @@map("labor")
+}
+
+enum MaterialStatus {
+  ORDERED
+  DELIVERED
+  IN_USE
+  DEPLETED
+}
+
+model Material {
+  id            String         @id @default(uuid())
+  name          String
+  category      String
+  quantity      Float
+  unit          String
+  supplier      String?
+  costPerUnit   Float?         @map("cost_per_unit")
+  totalCost     Float?         @map("total_cost")
+  deliveryDate  DateTime?      @map("delivery_date")
+  status        MaterialStatus @default(ORDERED)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  @@index([category])
+  @@index([status])
+  @@map("materials")
+}
+
+model DailyUpdate {
+  id          String   @id @default(uuid())
+  date        DateTime
+  weather     String?
+  workDone    String   @map("work_done")
+  laborCount  Int      @map("labor_count")
+  issues      String?
+  photos      String?
+  createdBy   String   @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([date])
+  @@map("daily_updates")
+}
+
+model StatusBoard {
+  id          String    @id @default(uuid())
+  projectName String    @map("project_name")
+  phase       String
+  status      String
+  progress    Int       @default(0)
+  startDate   DateTime? @map("start_date")
+  endDate     DateTime? @map("end_date")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("status_board")
 }
