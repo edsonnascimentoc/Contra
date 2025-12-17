@@ -30,13 +30,21 @@ router.get('/type/:type', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { name, designation, department, contact, daily_rate, type } = req.body;
+    const parsedRate = daily_rate === undefined || daily_rate === null || daily_rate === ''
+      ? null
+      : Number(String(daily_rate).replace(',', '.'));
+
+    if (parsedRate !== null && Number.isNaN(parsedRate)) {
+      return res.status(400).json({ error: 'Invalid daily_rate value' });
+    }
+
     const labor = await db.labor.create({
       data: {
         name,
         designation,
         department,
         contact,
-        dailyRate: daily_rate,
+        dailyRate: parsedRate,
         type
       }
     });
@@ -50,6 +58,14 @@ router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { name, designation, department, contact, daily_rate, type, status } = req.body;
+    const parsedRate = daily_rate === undefined || daily_rate === null || daily_rate === ''
+      ? null
+      : Number(String(daily_rate).replace(',', '.'));
+
+    if (parsedRate !== null && Number.isNaN(parsedRate)) {
+      return res.status(400).json({ error: 'Invalid daily_rate value' });
+    }
+
     const labor = await db.labor.update({
       where: { id },
       data: {
@@ -57,7 +73,7 @@ router.put('/:id', async (req, res) => {
         designation,
         department,
         contact,
-        dailyRate: daily_rate,
+        dailyRate: parsedRate,
         type,
         status
       }

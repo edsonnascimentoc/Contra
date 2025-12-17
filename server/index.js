@@ -27,6 +27,9 @@ async function startServer() {
   // Static files
   app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+  // Ignore favicon requests to prevent 404 errors
+  app.get('/favicon.ico', (req, res) => res.status(204).end());
+
   // Initialize database
   await initializeDatabase();
 

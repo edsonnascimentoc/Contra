@@ -797,7 +797,7 @@ await redisClient.connect();
 export default redisClient;
 ```
 
-### 6. Configurar SSL/HTTPS (Produção)
+### 6. Configurar SSL/HTTPS (Produção)                *** NÃO IMPLEMENTADO ***
 
 **Opção 1: Nginx como Reverse Proxy**
 

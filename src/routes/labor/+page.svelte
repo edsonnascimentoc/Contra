@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { Users, Plus, Edit, Trash2, Search } from 'lucide-svelte';
 	import { fetchAPI } from '$lib/api';
+	import { API_BASE } from '$lib/config';
 
 	let laborData: any[] = [];
 	let filteredData: any[] = [];
@@ -64,6 +65,7 @@
 			editingId = labor.id;
 			formData = {
 				...labor,
+				daily_rate: labor.dailyRate ?? 0,
 				contact: formatPhoneDisplay(labor.contact)
 			};
 		} else {
@@ -114,6 +116,11 @@
 		const formatted = formatPhoneDisplay(input.value);
 		input.value = formatted;
 		formData.contact = formatPhone(input.value);
+	}
+	
+	function formatCurrencyBRL(value: number | null | undefined): string {
+		if (typeof value !== 'number' || !isFinite(value)) return '0,00';
+		return value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 	}
 
 	async function saveLabor() {
@@ -338,7 +345,7 @@
 								<td>{labor.designation || '-'}</td>
 								<td>{labor.department || '-'}</td>
 								<td>{formatPhoneDisplay(labor.contact) || '-'}</td>
-								<td>R$ {labor.daily_rate?.toFixed(2) || '0,00'}</td>
+								<td>R$ {formatCurrencyBRL(labor.dailyRate)}</td>
 								<td>
 									<span class="badge {getTypeBadgeClass(labor.type)}">
 										{getTypeLabel(labor.type)}
