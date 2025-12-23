@@ -1,5 +1,9 @@
 {
 	"name": "national-group-construction",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/edsonnascimentoc/Contra.git"
+	},
 	"private": true,
 	"version": "0.0.1",
 	"type": "module",
@@ -14,11 +18,13 @@
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"server": "node server/index.js",
+		"prisma:generate": "prisma generate",
+		"server": "npm run prisma:generate && node server/index.js",
 		"dev:all": "concurrently \"npm run server\" \"npm run dev\"",
 		"start": "npm run server",
 		"build:server": "echo 'Server build complete'",
-		"postbuild": "node -e \"require('fs').cpSync('server', 'build/server', {recursive: true})\""
+		"postbuild": "node -e \"require('fs').cpSync('server', 'build/server', {recursive: true})\"",
+		"postinstall": "prisma generate"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "^6.0.0",
@@ -44,11 +50,13 @@
 		"@sentry/tracing": "^7.120.4",
 		"@sveltejs/kit": "^2.49.2",
 		"bcryptjs": "^3.0.3",
-		"cors": "^2.8.5",
+		"brace-expansion": "^2.0.2",
+		"cors": "^2.8.5",		
 		"date-fns": "^4.1.0",
 		"dotenv": "^17.2.3",
 		"express": "^4.21.2",
 		"express-rate-limit": "^8.2.1",
+		"glob": "^11.1.0",
 		"helmet": "^8.1.0",
 		"jsonwebtoken": "^9.0.2",
 		"lucide-svelte": "^0.542.0",
@@ -59,10 +67,8 @@
 		"zod": "^4.1.12"
 	},
 	"overrides": {
-  "cookie": "^0.7.1",
-  "jws": "^3.2.2"
+		"cookie": "^0.7.1",
+		"jws": "^3.2.2",		
+		"cross-spawn": "7.0.5"		
+	}
 }
-
-}
-
-
