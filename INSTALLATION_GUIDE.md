@@ -377,24 +377,13 @@ O banco será inicializado automaticamente na primeira execução do servidor. A
 5. **plant_machinery** - Equipamentos e maquinário
 6. **daily_updates** - Atualizações diárias
 
-### Opção B: PostgreSQL (Produção ou Docker)
+### Opção B: PostgreSQL (Produção)
 
-#### Método 1: Instalação via Docker (Recomendado)
-
-Esta opção é ideal para evitar conflitos de porta e não requer instalação do PostgreSQL no sistema operacional.
-
-**1. Rodar container PostgreSQL:**
-```bash
-# Mapeia a porta 5433 do host para a 5432 do container
-docker run --name contra-postgres -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=contra -p 5433:5432 -d postgres
-```
-
-**2. Configurar `.env`:**
-```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5433/contra?schema=public"
-```
-
-#### Método 2: Instalação Nativa (Manual)
+#### Vantagens:
+- ✅ Melhor performance
+- ✅ Suporte a múltiplos usuários
+- ✅ Recursos avançados
+- ✅ Escalabilidade
 
 #### Passo 1: Criar Banco de Dados PostgreSQL
 
