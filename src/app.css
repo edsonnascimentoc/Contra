@@ -2,7 +2,7 @@
 
 :root {
   /* Gold and Off-white Color Scheme */
-  --primary-gold: #d4af37;
+  --primary-gold: var(--primary-color, #d4af37);
   --secondary-gold: #b8860b;
   --light-gold: #f7e98e;
   --off-white: #fffbf0;

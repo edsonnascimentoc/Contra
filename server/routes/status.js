@@ -10,7 +10,8 @@ router.get('/', async (req, res) => {
     });
     res.json(statusBoard);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -35,10 +36,11 @@ router.get('/phases', async (req, res) => {
 
     res.json(statusData);
   } catch (error) {
-    console.error('Error fetching status phases:', error);
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('Error fetching status phases:', message);
     res.status(500).json({
       error: 'Internal Server Error',
-      message: error.message
+      message
     });
   }
 });
@@ -59,7 +61,8 @@ router.post('/', async (req, res) => {
     });
     res.json(statusItem);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -78,7 +81,8 @@ router.put('/:id', async (req, res) => {
     });
     res.json(statusItem);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 
@@ -90,7 +94,8 @@ router.delete('/:id', async (req, res) => {
     });
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const message = error instanceof Error ? error.message : String(error);
+    res.status(500).json({ error: message });
   }
 });
 

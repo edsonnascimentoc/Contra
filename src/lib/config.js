@@ -7,4 +7,7 @@ const API_BASE = isNetlifyProduction
   ? '/.netlify/functions/api'
   : 'http://localhost:3001/api';
 
-export { API_BASE };
+const BRAND_NAME = import.meta.env.PUBLIC_BRAND_NAME || 'National Group';
+const PRIMARY_COLOR = import.meta.env.PUBLIC_PRIMARY_COLOR || '#d4af37';
+
+export { API_BASE, BRAND_NAME, PRIMARY_COLOR };

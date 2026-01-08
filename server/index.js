@@ -3,6 +3,8 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import * as Sentry from '@sentry/node';
+import fs from 'fs';
 
 import { initializeDatabase } from './database/init.js';
 import statusRoutes from './routes/status.js';
@@ -13,7 +15,16 @@ import dailyUpdatesRoutes from './routes/dailyUpdates.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config();
+const env = process.env.NODE_ENV || 'development';
+const envFile = `.env.${env}`;
+const envPath = fs.existsSync(envFile) ? envFile : '.env';
+dotenv.config({ path: envPath });
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  environment: process.env.NODE_ENV,
+  tracesSampleRate: 1.0,
+});
 
 const app = express();
 const PORT = process.env.PORT || 3001;

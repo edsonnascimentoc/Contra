@@ -28,25 +28,20 @@ const transports: winston.transport[] = [
     format: consoleFormat,
     level: logLevel,
   }),
+  new winston.transports.File({
+    filename: path.join('logs', 'error.log'),
+    level: 'error',
+    format: logFormat,
+    maxsize: 5242880,
+    maxFiles: 5,
+  }),
+  new winston.transports.File({
+    filename: path.join('logs', 'combined.log'),
+    format: logFormat,
+    maxsize: 5242880,
+    maxFiles: 5,
+  }),
 ];
-
-if (isProduction) {
-  transports.push(
-    new winston.transports.File({
-      filename: path.join('logs', 'error.log'),
-      level: 'error',
-      format: logFormat,
-      maxsize: 5242880,
-      maxFiles: 5,
-    }),
-    new winston.transports.File({
-      filename: path.join('logs', 'combined.log'),
-      format: logFormat,
-      maxsize: 5242880,
-      maxFiles: 5,
-    })
-  );
-}
 
 const logger = winston.createLogger({
   level: logLevel,

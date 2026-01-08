@@ -1,15 +1,16 @@
-<script lang="ts">
-	import { Package } from 'lucide-svelte';
-</script>
+	<script lang="ts">
+		import { Package } from 'lucide-svelte';
+		import { BRAND_NAME } from '$lib/config';
+	</script>
 
-<svelte:head>
-	<title>Materials & P&M - National Group India</title>
-</svelte:head>
+	<svelte:head>
+		<title>Materials & P&M - {BRAND_NAME}</title>
+	</svelte:head>
 
 <div class="app-container">
 	<nav class="sidebar">
 		<div style="padding: 2rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.2);">
-			<h2 style="margin: 0; color: white; font-size: 1.5rem;">🏗️ National Group</h2>
+			<h2 style="margin: 0; color: white; font-size: 1.5rem;">🏗️ {BRAND_NAME}</h2>
 			<p style="margin: 0.5rem 0 0 0; color: rgba(255,255,255,0.8); font-size: 0.9rem;">Construction Management</p>
 		</div>
 		

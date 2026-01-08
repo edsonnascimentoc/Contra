@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { Building, Users, Package, Activity, Calendar, TrendingUp } from 'lucide-svelte';
 	import { fetchAPI } from '$lib/api';
+	import { BRAND_NAME } from '$lib/config';
 
 	let statusData: any[] = [];
 	let phases: any[] = [];
@@ -53,15 +54,15 @@
 	}
 </script>
 
-<svelte:head>
-	<title>National Group India - Construction Dashboard</title>
-</svelte:head>
+	<svelte:head>
+		<title>{BRAND_NAME} - Construction Dashboard</title>
+	</svelte:head>
 
 <div class="app-container">
 	<!-- Sidebar Navigation -->
 	<nav class="sidebar">
 		<div style="padding: 2rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.2);">
-			<h2 style="margin: 0; color: white; font-size: 1.5rem;">🏗️ National Group</h2>
+			<h2 style="margin: 0; color: white; font-size: 1.5rem;">🏗️ {BRAND_NAME}</h2>
 			<p style="margin: 0.5rem 0 0 0; color: rgba(255,255,255,0.8); font-size: 0.9rem;">Construction Management</p>
 		</div>
 		

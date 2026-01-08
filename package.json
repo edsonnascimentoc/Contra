@@ -27,7 +27,11 @@
 		"start": "npm run server",
 		"build:server": "echo 'Server build complete'",
 		"postbuild": "node -e \"require('fs').cpSync('server', 'build/server', {recursive: true})\"",
-		"postinstall": "prisma generate"
+		"postinstall": "prisma generate",
+		"backup:db": "if (-not (Test-Path 'backups')) { New-Item -ItemType Directory -Path 'backups' | Out-Null }; $ts = Get-Date -Format 'yyyyMMdd_HHmmss'; if ($env:DATABASE_URL) { pg_dump --dbname=$env:DATABASE_URL -F c -f \"backups/db_$ts.dump\" } elseif (Test-Path 'server/database/construction.db') { Copy-Item 'server/database/construction.db' \"backups/construction_$ts.db\" } else { Write-Host 'Nenhum banco de dados para backup: configure DATABASE_URL ou SQLite' }",
+		"backup:logs": "if (-not (Test-Path 'backups')) { New-Item -ItemType Directory -Path 'backups' | Out-Null }; $ts = Get-Date -Format 'yyyyMMdd_HHmmss'; if (Test-Path 'logs') { Compress-Archive -Path 'logs/*' -DestinationPath \"backups/logs_$ts.zip\" -Force } else { Write-Host 'Pasta de logs não encontrada' }",
+		"backup:all": "npm run backup:db && npm run backup:logs",
+		"docs:generate": "node scripts/generate-process-docs.cjs"
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.57.0",
