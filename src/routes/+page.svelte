@@ -19,25 +19,28 @@
 	});
 
 	async function fetchData() {
-		loading = true;
-		error = null;
+	loading = true;
+	error = null;
 
-		try {
-			const statusResp = await fetchAPI<any[]>('/status');
-			statusData = Array.isArray(statusResp) ? statusResp : [];
+	try {
+		// Construir URL com parâmetros de data
+		const dateParams = `startDate=${selectedDateRange.start}&endDate=${selectedDateRange.end}`;
+		
+		const statusResp = await fetchAPI<any[]>(`/status?${dateParams}`);
+		statusData = Array.isArray(statusResp) ? statusResp : [];
 
-			const phasesResp = await fetchAPI<any[]>('/status/phases');
-			phases = Array.isArray(phasesResp) ? phasesResp : [];
+		const phasesResp = await fetchAPI<any[]>(`/status/phases?${dateParams}`);
+		phases = Array.isArray(phasesResp) ? phasesResp : [];
 
-			const dailyStatsResp = await fetchAPI<any>(`/daily-updates/stats?startDate=${selectedDateRange.start}&endDate=${selectedDateRange.end}`);
-			dailyStats = dailyStatsResp && typeof dailyStatsResp === 'object' ? dailyStatsResp : {};
-		} catch (err: any) {
-			error = err.message || 'Erro desconhecido ao buscar dados.';
-			console.error('Failed to fetch data:', err);
-		} finally {
-			loading = false;
-		}
+		const dailyStatsResp = await fetchAPI<any>(`/daily-updates/stats?${dateParams}`);
+		dailyStats = dailyStatsResp && typeof dailyStatsResp === 'object' ? dailyStatsResp : {};
+	} catch (err: any) {
+		error = err.message || 'Erro desconhecido ao buscar dados.';
+		console.error('Failed to fetch data:', err);
+	} finally {
+		loading = false;
 	}
+}
 
 	function getStatusColor(status: string) {
 		switch (status?.toLowerCase?.()) {

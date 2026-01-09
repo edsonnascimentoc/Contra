@@ -5,7 +5,44 @@ const router = express.Router();
 
 router.get('/', async (req, res) => {
   try {
+    const { startDate, endDate } = req.query;
+    
+    /**
+     * @type {{
+     *   startDate?: {
+     *     gte?: Date;
+     *     lte?: Date;
+     *   }
+     * }}
+     */
+    /**
+     * @type {{
+     *   startDate?: {
+     *     gte?: Date;
+     *     lte?: Date;
+     *   }
+     * }}
+     */
+    let whereClause = {};
+    
+    // Aplicar filtro de data se fornecido
+    if (startDate || endDate) {
+      whereClause = {};
+      
+      if (startDate) {
+        whereClause.startDate = { gte: new Date(String(startDate)) };
+      }
+      
+      if (endDate) {
+        if (!whereClause.startDate) {
+          whereClause.startDate = {};
+        }
+        whereClause.startDate.lte = new Date(String(endDate));
+      }
+    }
+    
     const statusBoard = await db.statusBoard.findMany({
+      where: whereClause,
       orderBy: { createdAt: 'desc' }
     });
     res.json(statusBoard);
@@ -17,7 +54,28 @@ router.get('/', async (req, res) => {
 
 router.get('/phases', async (req, res) => {
   try {
+    const { startDate, endDate } = req.query;
+    
+    let whereClause = {};
+    
+    // Aplicar filtro de data se fornecido
+    if (startDate || endDate) {
+      whereClause = {};
+      
+      if (startDate) {
+        whereClause.startDate = { gte: new Date(String(startDate)) };
+      }
+      
+      if (endDate) {
+        if (!whereClause.startDate) {
+          whereClause.startDate = {};
+        }
+        whereClause.startDate.lte = new Date(String(endDate));
+      }
+    }
+    
     const statusData = await db.statusBoard.findMany({
+      where: whereClause,
       select: {
         id: true,
         projectName: true,
