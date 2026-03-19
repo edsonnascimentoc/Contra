@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model StatusBoard {
+  id          String    @id @default(uuid())
+  projectName String    @map("project_name")
+  phase       String
+  status      String
+  progress    Int       @default(0)
+  startDate   DateTime? @map("start_date")
+  endDate     DateTime? @map("end_date")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("status_board")
+}
+
+model Labor {
+  id          String   @id @default(uuid())
+  name        String
+  designation String?
+  department  String?
+  contact     String?
+  dailyRate   Float?   @map("daily_rate")
+  type        String   @default("STAFF")
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("labor")
+}
+
+model Material {
+  id           String   @id @default(uuid())
+  name         String
+  category     String
+  quantity     Float
+  unit         String
+  supplier     String?
+  costPerUnit  Float?   @map("cost_per_unit")
+  totalCost    Float?   @map("total_cost")
+  deliveryDate DateTime? @map("delivery_date")
+  status       String   @default("ORDERED")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([category])
+  @@index([status])
+  @@map("materials")
+}
+
+model DailyUpdate {
+  id          String   @id @default(uuid())
+  date        DateTime
+  weather     String?
+  workDone    String   @map("work_done")
+  laborCount  Int      @map("labor_count")
+  issues      String?
+  photos      String?
+  createdBy   String   @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([date])
+  @@map("daily_updates")
+}

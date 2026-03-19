@@ -3,6 +3,7 @@
 	import { Building, Users, Package, Activity, Calendar, TrendingUp } from 'lucide-svelte';
 	import { fetchAPI } from '$lib/api';
 	import { BRAND_NAME } from '$lib/config';
+	import ProjectModal from '$lib/components/ProjectModal.svelte';
 
 	let statusData: any[] = [];
 	let phases: any[] = [];
@@ -13,6 +14,7 @@
 		start: new Date().toISOString().split('T')[0],
 		end: new Date().toISOString().split('T')[0]
 	};
+	let showProjectModal = false;
 
 	onMount(async () => {
 		await fetchData();
@@ -42,6 +44,14 @@
 	}
 }
 
+function openProjectModal() {
+	showProjectModal = true;
+}
+
+function handleProjectCreated() {
+	fetchData();
+}
+
 	function getStatusColor(status: string) {
 		switch (status?.toLowerCase?.()) {
 			case 'completed': return 'status-completed';
@@ -53,12 +63,28 @@
 	}
 
 	function formatStatus(status: string) {
-		return status ? status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : '';
+		if (!status) return '';
+		const translations: Record<string, string> = {
+			'completed': 'Concluído',
+			'in_progress': 'Em Progresso',
+			'in-progress': 'Em Progresso',
+			'not_started': 'Não Iniciado',
+			'not-started': 'Não Iniciado',
+			'on_hold': 'Em Espera',
+			'on-hold': 'Em Espera',
+			'todo': 'A Fazer',
+			'review': 'Revisão',
+			'blocked': 'Bloqueado',
+			'planning': 'Planejamento',
+			'cancelled': 'Cancelado'
+		};
+		const key = status.toLowerCase();
+		return translations[key] || status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 	}
 </script>
 
 	<svelte:head>
-		<title>{BRAND_NAME} - Construction Dashboard</title>
+		<title>{BRAND_NAME} - Dashboard de Construção</title>
 	</svelte:head>
 
 <div class="app-container">
@@ -66,29 +92,29 @@
 	<nav class="sidebar">
 		<div style="padding: 2rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.2);">
 			<h2 style="margin: 0; color: white; font-size: 1.5rem;">🏗️ {BRAND_NAME}</h2>
-			<p style="margin: 0.5rem 0 0 0; color: rgba(255,255,255,0.8); font-size: 0.9rem;">Construction Management</p>
+			<p style="margin: 0.5rem 0 0 0; color: rgba(255,255,255,0.8); font-size: 0.9rem;">Gestão de Construção</p>
 		</div>
 		
 		<div style="padding: 1rem 0;">
 			<a href="/" class="nav-item active">
 				<Activity size={20} style="display: inline; margin-right: 0.75rem;" />
-				Status Board
+				Painel de Status
 			</a>
 			<a href="/labor" class="nav-item">
 				<Users size={20} style="display: inline; margin-right: 0.75rem;" />
-				Labor Management
+				Gestão de Mão de Obra
 			</a>
 			<a href="/materials" class="nav-item">
 				<Package size={20} style="display: inline; margin-right: 0.75rem;" />
-				Materials & P&M
+				Materiais e P&M
 			</a>
 			<a href="/daily-updates" class="nav-item">
 				<Calendar size={20} style="display: inline; margin-right: 0.75rem;" />
-				Daily Updates
+				Atualizações Diárias
 			</a>
 			<a href="/reports" class="nav-item">
 				<TrendingUp size={20} style="display: inline; margin-right: 0.75rem;" />
-				Reports
+				Relatórios
 			</a>
 		</div>
 	</nav>
@@ -97,76 +123,76 @@
 	<main class="main-content">
 		<!-- Header -->
 		<div class="header">
-			<h1>Construction Status Dashboard</h1>
-			<p class="subtitle">Real-time overview of all construction activities • {new Date().toLocaleDateString('en-IN')}</p>
+			<h1>Dashboard de Status da Construção</h1>
+			<p class="subtitle">Visão geral em tempo real de todas as atividades • {new Date().toLocaleDateString('pt-BR')}</p>
 		</div>
 
 		{#if loading}
 			<div class="loading-state">
 				<div class="spinner"></div>
-				<p>Loading data...</p>
+				<p>Carregando dados...</p>
 			</div>
 		{:else if error}
 			<div class="error-state">
-				<h3>⚠️ Error Loading Data</h3>
+				<h3>⚠️ Erro ao Carregar Dados</h3>
 				<p>{error}</p>
-				<button on:click={fetchData} class="btn-retry">Try Again</button>
+				<button on:click={fetchData} class="btn-retry">Tentar Novamente</button>
 			</div>
 		{:else}
 			<!-- Dashboard Statistics -->
 			<div class="dashboard-grid">
 				<div class="stat-card">
 					<div class="stat-number">{statusData.length}</div>
-					<div class="stat-label">Active Projects</div>
+					<div class="stat-label">Projetos Ativos</div>
 				</div>
 				<div class="stat-card">
 					<div class="stat-number">{phases.filter(p => p.status === 'IN_PROGRESS').length}</div>
-					<div class="stat-label">Phases in Progress</div>
+					<div class="stat-label">Fases em Progresso</div>
 				</div>
 				<div class="stat-card">
 					<div class="stat-number">{Math.round(dailyStats.avg_manpower || 0)}</div>
-					<div class="stat-label">Average Manpower</div>
+					<div class="stat-label">Média de Manpower</div>
 				</div>
 				<div class="stat-card">
 					<div class="stat-number">{dailyStats.total_safety_incidents || 0}</div>
-					<div class="stat-label">Safety Incidents</div>
+					<div class="stat-label">Incidentes de Segurança</div>
 				</div>
 			</div>
 
 			<!-- Date Range Control -->
 			<div class="card">
 				<div class="card-header">
-					<h3 class="card-title">📅 Date Range Filter</h3>
+					<h3 class="card-title">📅 Filtro de Período</h3>
 				</div>
 				<div style="display: flex; gap: 1rem; align-items: end;">
 				<div class="form-group" style="margin-bottom: 0;">
-					<label class="form-label" for="start-date">Start Date</label>
+					<label class="form-label" for="start-date">Data Inicial</label>
 					<input id="start-date" type="date" class="form-input" bind:value={selectedDateRange.start} on:change={fetchData} />
 				</div>
 				<div class="form-group" style="margin-bottom: 0;">
-					<label class="form-label" for="end-date">End Date</label>
+					<label class="form-label" for="end-date">Data Final</label>
 					<input id="end-date" type="date" class="form-input" bind:value={selectedDateRange.end} on:change={fetchData} />
 				</div>
-				<button class="btn btn-primary" on:click={fetchData}>Update</button>
+				<button class="btn btn-primary" on:click={fetchData}>Atualizar</button>
 			</div>
 		</div>
 
 		<!-- Project Status Overview -->
 		<div class="card">
 			<div class="card-header">
-				<h3 class="card-title">🏢 Project Status Board</h3>
-				<button class="btn btn-secondary">Add New Project</button>
-			</div>
+					<h3 class="card-title">🏢 Painel de Status de Projetos</h3>
+					<button class="btn btn-secondary" on:click={openProjectModal}>Adicionar Novo Projeto</button>
+				</div>
 			<div class="table-container">
 				<table class="table">
 					<thead>
 						<tr>
-							<th>Project Name</th>
-							<th>Phase</th>
+							<th>Nome do Projeto</th>
+							<th>Fase</th>
 							<th>Status</th>
-							<th>Progress</th>
-							<th>Start Date</th>
-							<th>Target Date</th>
+							<th>Progresso</th>
+							<th>Data de Início</th>
+							<th>Data Prevista</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -185,8 +211,8 @@
 									</div>
 									<small>{project.progress}%</small>
 								</td>
-								<td>{project.start_date || 'Not set'}</td>
-								<td>{project.end_date || 'Not set'}</td>
+								<td>{project.start_date || 'Não definido'}</td>
+								<td>{project.end_date || 'Não definido'}</td>
 							</tr>
 						{/each}
 					</tbody>
@@ -197,12 +223,12 @@
 		<!-- Construction Phases -->
 		<div class="card">
 			<div class="card-header">
-				<h3 class="card-title">🔧 Construction Phases Status</h3>
+				<h3 class="card-title">🔧 Status das Fases de Construção</h3>
 			</div>
 			<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
 				{#each phases as phase}
 					<div class="card" style="margin-bottom: 0; border-left: 4px solid var(--primary-gold);">
-						<div style="display: flex; justify-content: between; align-items: start; margin-bottom: 1rem;">
+						<div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
 							<div>
 								<h4 style="margin: 0; color: var(--text-dark);">{phase.phase_name}</h4>
 								<p style="margin: 0.25rem 0; color: var(--text-light); font-size: 0.9rem;">{phase.category}</p>
@@ -214,7 +240,7 @@
 						<div class="progress-bar">
 							<div class="progress-fill" style="width: {phase.progress}%"></div>
 						</div>
-						<div style="display: flex; justify-content: between; margin-top: 0.5rem; font-size: 0.9rem; color: var(--text-light);">
+						<div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.9rem; color: var(--text-light);">
 							<span>{phase.progress}%</span>
 							<span>{phase.responsible_person}</span>
 						</div>
@@ -226,17 +252,24 @@
 		<!-- Quick Actions -->
 		<div class="card">
 			<div class="card-header">
-				<h3 class="card-title">⚡ Quick Actions</h3>
+				<h3 class="card-title">⚡ Ações Rápidas</h3>
 			</div>
 			<div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-				<button class="btn btn-primary">📝 Add Daily Update</button>
-				<button class="btn btn-secondary">👷 Manage Labor</button>
-				<button class="btn btn-secondary">📦 Material Request</button>
-				<button class="btn btn-secondary">🚨 Report Issue</button>
-				<button class="btn btn-secondary">📊 Generate Report</button>
+				<button class="btn btn-primary">📝 Diário de Obra</button>
+				<button class="btn btn-secondary">👷 Gestão de Mão de Obra</button>
+				<button class="btn btn-secondary">📦 Pedido de Material</button>
+				<button class="btn btn-secondary">🚨 Reportar Incidente</button>
+				<button class="btn btn-secondary">📊 Gerar Relatório</button>
 			</div>
 		</div>
-		{/if}
+
+			{/if}
+	
+	<!-- Project Modal -->
+	<ProjectModal 
+		bind:isOpen={showProjectModal}
+		on:success={handleProjectCreated}
+	/>
 	</main>
 </div>
 
