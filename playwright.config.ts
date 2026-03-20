@@ -6,8 +6,8 @@ export default defineConfig({
 		port: 4173,
 		reuseExistingServer: !process.env.CI,
 	},
-	testDir: 'tests',
-	testMatch: /(.+\.)?(test|spec)\.[jt]s/,
+	testDir: 'tests/e2e',
+	testMatch: /.+\.spec\.[jt]s/,
 	projects: [
 		{
 			name: 'chromium',

@@ -4,12 +4,18 @@ import { fetchAPI } from './api';
 const originalFetch = global.fetch;
 
 describe('fetchAPI', () => {
+  let consoleSpy: any;
+
   beforeEach(() => {
     vi.resetAllMocks();
+    consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'log').mockImplementation(() => {});
   });
 
   afterEach(() => {
     global.fetch = originalFetch as any;
+    consoleSpy.mockRestore();
+    vi.restoreAllMocks();
   });
 
   it('retorna dados JSON quando a resposta é ok', async () => {

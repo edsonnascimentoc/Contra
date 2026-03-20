@@ -11,8 +11,8 @@
 	let loading = true;
 	let error: string | null = null;
 	let selectedDateRange = {
-		start: new Date().toISOString().split('T')[0],
-		end: new Date().toISOString().split('T')[0]
+		start: '',
+		end: ''
 	};
 	let showProjectModal = false;
 
@@ -26,7 +26,10 @@
 
 	try {
 		// Construir URL com parâmetros de data
-		const dateParams = `startDate=${selectedDateRange.start}&endDate=${selectedDateRange.end}`;
+		let dateParams = '';
+		if (selectedDateRange.start || selectedDateRange.end) {
+			dateParams = `startDate=${selectedDateRange.start}&endDate=${selectedDateRange.end}`;
+		}
 		
 		const statusResp = await fetchAPI<any[]>(`/status?${dateParams}`);
 		statusData = Array.isArray(statusResp) ? statusResp : [];
@@ -43,6 +46,7 @@
 		loading = false;
 	}
 }
+
 
 function openProjectModal() {
 	showProjectModal = true;
@@ -198,7 +202,7 @@ function handleProjectCreated() {
 					<tbody>
 						{#each statusData as project}
 							<tr>
-								<td style="font-weight: 600;">{project.project_name}</td>
+								<td style="font-weight: 600;">{project.projectName}</td>
 								<td>{project.phase}</td>
 								<td>
 									<span class="status-badge {getStatusColor(project.status)}">
@@ -211,8 +215,8 @@ function handleProjectCreated() {
 									</div>
 									<small>{project.progress}%</small>
 								</td>
-								<td>{project.start_date || 'Não definido'}</td>
-								<td>{project.end_date || 'Não definido'}</td>
+								<td>{project.startDate ? new Date(project.startDate).toLocaleDateString('pt-BR') : 'Não definido'}</td>
+								<td>{project.endDate ? new Date(project.endDate).toLocaleDateString('pt-BR') : 'Não definido'}</td>
 							</tr>
 						{/each}
 					</tbody>
@@ -230,8 +234,8 @@ function handleProjectCreated() {
 					<div class="card" style="margin-bottom: 0; border-left: 4px solid var(--primary-gold);">
 						<div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
 							<div>
-								<h4 style="margin: 0; color: var(--text-dark);">{phase.phase_name}</h4>
-								<p style="margin: 0.25rem 0; color: var(--text-light); font-size: 0.9rem;">{phase.category}</p>
+								<h4 style="margin: 0; color: var(--text-dark);">{phase.phase}</h4>
+								<p style="margin: 0.25rem 0; color: var(--text-light); font-size: 0.9rem;">{phase.projectName}</p>
 							</div>
 							<span class="status-badge {getStatusColor(phase.status)}">
 								{formatStatus(phase.status)}
@@ -242,7 +246,7 @@ function handleProjectCreated() {
 						</div>
 						<div style="display: flex; justify-content: space-between; margin-top: 0.5rem; font-size: 0.9rem; color: var(--text-light);">
 							<span>{phase.progress}%</span>
-							<span>{phase.responsible_person}</span>
+							<span>{phase.projectName}</span>
 						</div>
 					</div>
 				{/each}

@@ -4,43 +4,43 @@
 	</script>
 
 	<svelte:head>
-		<title>Daily Updates - {BRAND_NAME}</title>
+		<title>Atualizações Diárias - {BRAND_NAME}</title>
 	</svelte:head>
 
 <div class="app-container">
 	<nav class="sidebar">
 		<div style="padding: 2rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.2);">
 			<h2 style="margin: 0; color: white; font-size: 1.5rem;">🏗️ {BRAND_NAME}</h2>
-			<p style="margin: 0.5rem 0 0 0; color: rgba(255,255,255,0.8); font-size: 0.9rem;">Construction Management</p>
+			<p style="margin: 0.5rem 0 0 0; color: rgba(255,255,255,0.8); font-size: 0.9rem;">Gestão de Construção</p>
 		</div>
 		
 		<div style="padding: 1rem 0;">
 			<a href="/" class="nav-item">
 				<span style="display: inline; margin-right: 0.75rem;">📊</span>
-				Status Board
+				Painel de Status
 			</a>
 			<a href="/labor" class="nav-item">
 				<span style="display: inline; margin-right: 0.75rem;">👥</span>
-				Labor Management
+				Gestão de Mão de Obra
 			</a>
 			<a href="/materials" class="nav-item">
 				<span style="display: inline; margin-right: 0.75rem;">📦</span>
-				Materials & P&M
+				Materiais e P&M
 			</a>
 			<a href="/daily-updates" class="nav-item active">
 				<Calendar size={20} style="display: inline; margin-right: 0.75rem;" />
-				Daily Updates
+				Atualizações Diárias
 			</a>
 			<a href="/reports" class="nav-item">
 				<span style="display: inline; margin-right: 0.75rem;">📈</span>
-				Reports
+				Relatórios
 			</a>
 		</div>
 	</nav>
 
 	<main class="main-content">
 		<div class="header">
-			<h1>Daily Updates</h1>
+			<h1>Atualizações Diárias</h1>
 			<p class="subtitle">Em desenvolvimento</p>
 		</div>
 		

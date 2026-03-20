@@ -105,16 +105,16 @@ router.get('/phases', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { project_name, phase, status, progress, start_date, end_date } = req.body;
+    const { projectName, phase, status, progress, startDate, endDate } = req.body;
     
     const statusItem = await db.statusBoard.create({
       data: {
-        projectName: project_name,
+        projectName,
         phase,
         status,
         progress: progress || 0,
-        startDate: start_date ? new Date(start_date) : null,
-        endDate: end_date ? new Date(end_date) : null
+        startDate: startDate ? new Date(startDate) : null,
+        endDate: endDate ? new Date(endDate) : null
       }
     });
     res.json(statusItem);

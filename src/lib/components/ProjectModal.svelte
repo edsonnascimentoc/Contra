@@ -7,12 +7,12 @@
 	const dispatch = createEventDispatcher();
 
 	let formData = {
-		project_name: '',
+		projectName: '',
 		phase: 'Construção',
 		status: 'PLANNING',
 		progress: 0,
-		start_date: '',
-		end_date: ''
+		startDate: '',
+		endDate: ''
 	};
 
 	let loading = false;
@@ -36,12 +36,12 @@
 
 	function resetForm() {
 		formData = {
-			project_name: '',
+			projectName: '',
 			phase: 'Construção',
 			status: 'PLANNING',
 			progress: 0,
-			start_date: '',
-			end_date: ''
+			startDate: '',
+			endDate: ''
 		};
 		error = null;
 	}
@@ -53,7 +53,7 @@
 	}
 
 	async function handleSubmit() {
-		if (!formData.project_name.trim()) {
+		if (!formData.projectName.trim()) {
 			error = 'Nome do projeto é obrigatório';
 			return;
 		}
@@ -63,12 +63,12 @@
 
 		try {
 			const payload = {
-				project_name: formData.project_name,
+				projectName: formData.projectName,
 				phase: formData.phase,
 				status: formData.status,
 				progress: formData.progress,
-				start_date: formData.start_date || undefined,
-				end_date: formData.end_date || undefined
+				startDate: formData.startDate || undefined,
+				endDate: formData.endDate || undefined
 			};
 
 			await fetchAPI('/status', {
@@ -90,6 +90,7 @@
 	}
 
 
+
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape') {
 			closeModal();
@@ -101,13 +102,9 @@
 			closeModal();
 		}
 	}
-
-	$: if (isOpen) {
-		document.addEventListener('keydown', handleKeydown);
-	} else {
-		document.removeEventListener('keydown', handleKeydown);
-	}
 </script>
+
+<svelte:window on:keydown={(e) => isOpen && handleKeydown(e)} />
 
 {#if isOpen}
 	<div
@@ -138,7 +135,7 @@
 					id="project-name"
 					type="text"
 					class="form-input"
-					bind:value={formData.project_name}
+					bind:value={formData.projectName}
 					placeholder="Digite o nome do projeto"
 					required
 				/>
@@ -184,7 +181,7 @@
 						id="start-date"
 						type="date"
 						class="form-input"
-						bind:value={formData.start_date}
+						bind:value={formData.startDate}
 					/>
 				</div>
 
@@ -194,10 +191,11 @@
 						id="end-date"
 						type="date"
 						class="form-input"
-						bind:value={formData.end_date}
+						bind:value={formData.endDate}
 					/>
 				</div>
 			</div>
+
 
 			{#if error}
 				<div class="error-message">{error}</div>

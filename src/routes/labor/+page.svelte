@@ -208,7 +208,7 @@
 </script>
 
 	<svelte:head>
-		<title>Gerenciamento de Mão de Obra - {BRAND_NAME}</title>
+		<title>Gestão de Mão de Obra - {BRAND_NAME}</title>
 	</svelte:head>
 <div class="app-container">
 	<nav class="sidebar">
@@ -224,11 +224,11 @@
 			</a>
 			<a href="/labor" class="nav-item active">
 				<Users size={20} style="display: inline; margin-right: 0.75rem;" />
-				Gerenciamento de Mão de Obra
+				Gestão de Mão de Obra
 			</a>
 			<a href="/materials" class="nav-item">
 				<span style="display: inline; margin-right: 0.75rem;">📦</span>
-				Materiais & P&M
+				Materiais e P&M
 			</a>
 			<a href="/daily-updates" class="nav-item">
 				<span style="display: inline; margin-right: 0.75rem;">📅</span>
@@ -244,7 +244,7 @@
 	<main class="main-content">
 		<div class="header">
 			<div>
-				<h1>Gerenciamento de Mão de Obra</h1>
+				<h1>Gestão de Mão de Obra</h1>
 				<p class="subtitle">Controle de Funcionários, NMT e Contratados</p>
 			</div>
 			<button class="btn-primary" on:click={() => openForm()}>
