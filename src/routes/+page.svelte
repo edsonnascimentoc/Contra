@@ -56,6 +56,14 @@ function handleProjectCreated() {
 	fetchData();
 }
 
+function clearFilters() {
+	selectedDateRange = {
+		start: '',
+		end: ''
+	};
+	fetchData();
+}
+
 	function getStatusColor(status: string) {
 		switch (status?.toLowerCase?.()) {
 			case 'completed': return 'status-completed';
@@ -171,13 +179,18 @@ function handleProjectCreated() {
 				<div style="display: flex; gap: 1rem; align-items: end;">
 				<div class="form-group" style="margin-bottom: 0;">
 					<label class="form-label" for="start-date">Data Inicial</label>
-					<input id="start-date" type="date" class="form-input" bind:value={selectedDateRange.start} on:change={fetchData} />
+					<input id="start-date" type="date" class="form-input" bind:value={selectedDateRange.start} />
 				</div>
 				<div class="form-group" style="margin-bottom: 0;">
 					<label class="form-label" for="end-date">Data Final</label>
-					<input id="end-date" type="date" class="form-input" bind:value={selectedDateRange.end} on:change={fetchData} />
+					<input id="end-date" type="date" class="form-input" bind:value={selectedDateRange.end} />
 				</div>
-				<button class="btn btn-primary" on:click={fetchData}>Atualizar</button>
+				<div style="display: flex; gap: 0.5rem;">
+					<button class="btn btn-primary" on:click={fetchData}>Atualizar</button>
+					{#if selectedDateRange.start || selectedDateRange.end}
+						<button class="btn btn-secondary" on:click={clearFilters}>Limpar</button>
+					{/if}
+				</div>
 			</div>
 		</div>
 

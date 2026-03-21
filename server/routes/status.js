@@ -29,20 +29,28 @@ router.get('/', async (req, res) => {
     if (startDate || endDate) {
       whereClause = {};
       
+      const conditions = [];
+      
       if (startDate) {
-        whereClause.startDate = { gte: new Date(String(startDate)) };
+        conditions.push({
+          startDate: { gte: new Date(String(startDate)) }
+        });
       }
       
       if (endDate) {
-        if (!whereClause.startDate) {
-          whereClause.startDate = {};
-        }
-        whereClause.startDate.lte = new Date(String(endDate));
+        conditions.push({
+          endDate: { lte: new Date(String(endDate)) }
+        });
+      }
+
+      if (conditions.length > 0) {
+        whereClause.AND = conditions;
       }
     }
     
     const statusBoard = await db.statusBoard.findMany({
       where: whereClause,
+      distinct: ['projectName', 'phase'],
       orderBy: { createdAt: 'desc' }
     });
     res.json(statusBoard);
@@ -62,20 +70,28 @@ router.get('/phases', async (req, res) => {
     if (startDate || endDate) {
       whereClause = {};
       
+      const conditions = [];
+      
       if (startDate) {
-        whereClause.startDate = { gte: new Date(String(startDate)) };
+        conditions.push({
+          startDate: { gte: new Date(String(startDate)) }
+        });
       }
       
       if (endDate) {
-        if (!whereClause.startDate) {
-          whereClause.startDate = {};
-        }
-        whereClause.startDate.lte = new Date(String(endDate));
+        conditions.push({
+          endDate: { lte: new Date(String(endDate)) }
+        });
+      }
+
+      if (conditions.length > 0) {
+        whereClause.AND = conditions;
       }
     }
     
     const statusData = await db.statusBoard.findMany({
       where: whereClause,
+      distinct: ['projectName', 'phase'],
       select: {
         id: true,
         projectName: true,
@@ -107,8 +123,20 @@ router.post('/', async (req, res) => {
   try {
     const { projectName, phase, status, progress, startDate, endDate } = req.body;
     
-    const statusItem = await db.statusBoard.create({
-      data: {
+    const statusItem = await db.statusBoard.upsert({
+      where: {
+        projectName_phase: {
+          projectName,
+          phase
+        }
+      },
+      update: {
+        status,
+        progress: progress || 0,
+        startDate: startDate ? new Date(startDate) : undefined,
+        endDate: endDate ? new Date(endDate) : undefined
+      },
+      create: {
         projectName,
         phase,
         status,
@@ -120,6 +148,7 @@ router.post('/', async (req, res) => {
     res.json(statusItem);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    console.error('Error creating/updating status item:', message);
     res.status(500).json({ error: message });
   }
 });
