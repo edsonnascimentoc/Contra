@@ -1,7 +1,52 @@
 import express from 'express';
 import { db } from '../database/init.js';
+import { z } from 'zod';
 
 const router = express.Router();
+
+// T3 — Validação Zod no fluxo padrão
+const dateSchema = z.string().refine((val) => {
+  const d = new Date(val);
+  return !isNaN(d.getTime()) && d.getFullYear() > 2000;
+}, { message: 'Data inválida ou com ano incorreto (deve ser > 2000)' });
+
+const projectSchema = z.object({
+  projectName: z.string().min(1, 'Nome do projeto é obrigatório'),
+  phase: z.string().min(1, 'Fase é obrigatória'),
+  status: z.string().optional(),
+  progress: z.number().min(0).max(100).optional(),
+  startDate: dateSchema,
+  endDate: dateSchema,
+  isAdminOverride: z.boolean().optional(),
+  overrideReason: z.string().optional(),
+}).refine(
+  (data) => {
+    // Se for override administrativo, podemos pular a validação lógica se necessário, 
+    // mas o prompt foca na inversão como bug #6
+    return new Date(data.endDate) > new Date(data.startDate);
+  },
+  { message: 'Data de término deve ser posterior à data de início', path: ['endDate'] }
+);
+
+const updateProjectSchema = z.object({
+  projectName: z.string().min(1).optional(),
+  phase: z.string().min(1).optional(),
+  status: z.string().optional(),
+  progress: z.number().min(0).max(100).optional(),
+  startDate: dateSchema.optional(),
+  endDate: dateSchema.optional(),
+  isAdminOverride: z.boolean().optional(),
+  overrideReason: z.string().optional(),
+}).refine(
+  (data) => {
+    // Se ambas as datas forem fornecidas, validar cronologia
+    if (data.startDate && data.endDate) {
+      return new Date(data.endDate) > new Date(data.startDate);
+    }
+    return true;
+  },
+  { message: 'Data de término deve ser posterior à data de início', path: ['endDate'] }
+);
 
 router.get('/', async (req, res) => {
   try {
@@ -121,31 +166,59 @@ router.get('/phases', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const { projectName, phase, status, progress, startDate, endDate } = req.body;
-    
-    if (!projectName || !phase) {
-      return res.status(400).json({ error: 'Nome do projeto e fase são obrigatórios' });
+    // T3 - Validar com Zod
+    const validation = projectSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ 
+        error: 'Dados inválidos', 
+        details: validation.error.format() 
+      });
     }
 
-    const start = startDate ? new Date(String(startDate)) : null;
-    const end = endDate ? new Date(String(endDate)) : null;
+    const { projectName, phase, status, progress, startDate, endDate, isAdminOverride, overrideReason } = validation.data;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
 
-    const item = await db.statusBoard.upsert({
-      where: { projectName_phase: { projectName, phase } },
-      update: {
-        status,
-        progress: Number(progress) || 0,
-        startDate: start,
-        endDate: end
-      },
-      create: {
-        projectName,
-        phase,
-        status,
-        progress: Number(progress) || 0,
-        startDate: start,
-        endDate: end
-      }
+    // T5 — Transação ACID
+    const item = await db.$transaction(async (tx) => {
+      // Verificar se já existe
+      const existing = await tx.statusBoard.findUnique({
+        where: { projectName_phase: { projectName, phase } }
+      });
+
+      const upserted = await tx.statusBoard.upsert({
+        where: { projectName_phase: { projectName, phase } },
+        update: {
+          status,
+          progress: Number(progress) || 0,
+          startDate: start,
+          endDate: end
+        },
+        create: {
+          projectName,
+          phase,
+          status,
+          progress: Number(progress) || 0,
+          startDate: start,
+          endDate: end
+        }
+      });
+
+      // Registrar no histórico
+      await tx.dateHistory.create({
+        data: {
+          statusBoardId: upserted.id,
+          previousStart: existing?.startDate,
+          previousEnd: existing?.endDate,
+          newStart: start,
+          newEnd: end,
+          changedBy: req.user?.email || 'system',
+          isAdminOverride: !!isAdminOverride,
+          overrideReason: overrideReason || null
+        }
+      });
+
+      return upserted;
     });
 
     res.json(item);
@@ -159,19 +232,61 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { projectName, phase, progress, status, startDate, endDate } = req.body;
+    
+    // T3 - Validar com Zod
+    const validation = updateProjectSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({ 
+        error: 'Dados inválidos', 
+        details: validation.error.format() 
+      });
+    }
 
-    const updateData = {};
-    if (projectName !== undefined) updateData.projectName = projectName;
-    if (phase !== undefined) updateData.phase = phase;
-    if (progress !== undefined) updateData.progress = Number(progress);
-    if (status !== undefined) updateData.status = status;
-    if (startDate !== undefined) updateData.startDate = startDate ? new Date(String(startDate)) : null;
-    if (endDate !== undefined) updateData.endDate = endDate ? new Date(String(endDate)) : null;
+    const { projectName, phase, progress, status, startDate, endDate, isAdminOverride, overrideReason } = validation.data;
 
-    const item = await db.statusBoard.update({
-      where: { id },
-      data: updateData
+    // T5 — Transação ACID
+    const item = await db.$transaction(async (tx) => {
+      const existing = await tx.statusBoard.findUnique({ where: { id } });
+      if (!existing) throw new Error('Projeto não encontrado');
+
+      const updateData = {};
+      if (projectName !== undefined) updateData.projectName = projectName;
+      if (phase !== undefined) updateData.phase = phase;
+      if (progress !== undefined) updateData.progress = Number(progress);
+      if (status !== undefined) updateData.status = status;
+      if (startDate !== undefined) updateData.startDate = new Date(startDate);
+      if (endDate !== undefined) updateData.endDate = new Date(endDate);
+
+      // Validar cronologia final (existente + novo)
+      const finalStart = updateData.startDate || existing.startDate;
+      const finalEnd = updateData.endDate || existing.endDate;
+      if (finalEnd <= finalStart) {
+        throw new Error('A data de término deve ser posterior à data de início');
+      }
+
+      const updated = await tx.statusBoard.update({
+        where: { id },
+        data: updateData
+      });
+
+      // Registrar histórico se houver mudança nas datas
+      if ((startDate && existing.startDate.getTime() !== updateData.startDate.getTime()) || 
+          (endDate && existing.endDate.getTime() !== updateData.endDate.getTime())) {
+        await tx.dateHistory.create({
+          data: {
+            statusBoardId: id,
+            previousStart: existing.startDate,
+            previousEnd: existing.endDate,
+            newStart: finalStart,
+            newEnd: finalEnd,
+            changedBy: req.user?.email || 'system',
+            isAdminOverride: !!isAdminOverride,
+            overrideReason: overrideReason || null
+          }
+        });
+      }
+
+      return updated;
     });
 
     res.json(item);

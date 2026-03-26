@@ -66,10 +66,37 @@
 		dispatch('close');
 	}
 
+	// T6 — Função segura de parse — usar em todo bind de data
+	function parseInputDate(value: string) {
+		if (!value) return null;
+		// Força interpretação local evitando UTC offset que desloca o dia
+		const d = new Date(value + 'T00:00:00');
+		if (isNaN(d.getTime()) || d.getFullYear() < 2000) return null;
+		return d;
+	}
+
+	// T6 — Validação antes do submit
+	function validateDates() {
+		const start = parseInputDate(formData.startDate);
+		const end = parseInputDate(formData.endDate);
+
+		if (!start) return 'Data de início inválida ou com ano incorreto (deve ser > 2000)';
+		if (!end) return 'Data de término inválida ou com ano incorreto (deve ser > 2000)';
+		if (end <= start) return 'A data de término deve ser posterior à data de início';
+		return null;
+	}
+
 	async function handleSubmit() {
 		console.log('Submitting form data:', formData);
 		if (!formData.projectName.trim() || !formData.phase) {
 			error = 'Nome do projeto e fase são obrigatórios';
+			return;
+		}
+
+		// Validar datas robustamente
+		const dateError = validateDates();
+		if (dateError) {
+			error = dateError;
 			return;
 		}
 
@@ -196,22 +223,24 @@
 
 			<div class="form-row">
 				<div class="form-group">
-					<label class="form-label" for="start-date">Data de Início</label>
+					<label class="form-label" for="start-date">Data de Início *</label>
 					<input
 						id="start-date"
 						type="date"
 						class="form-input"
 						bind:value={formData.startDate}
+						required
 					/>
 				</div>
 
 				<div class="form-group">
-					<label class="form-label" for="end-date">Data de Término</label>
+					<label class="form-label" for="end-date">Data de Término *</label>
 					<input
 						id="end-date"
 						type="date"
 						class="form-input"
 						bind:value={formData.endDate}
+						required
 					/>
 				</div>
 			</div>
