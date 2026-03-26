@@ -3,6 +3,7 @@
 	import { fetchAPI } from '$lib/api';
 
 	export let isOpen = false;
+	export let editingProject: any = null;
 
 	const dispatch = createEventDispatcher();
 
@@ -14,6 +15,19 @@
 		startDate: '',
 		endDate: ''
 	};
+
+	$: if (editingProject && isOpen) {
+		formData = {
+			projectName: editingProject.projectName,
+			phase: editingProject.phase,
+			status: editingProject.status,
+			progress: editingProject.progress || 0,
+			startDate: editingProject.startDate ? new Date(editingProject.startDate).toISOString().split('T')[0] : '',
+			endDate: editingProject.endDate ? new Date(editingProject.endDate).toISOString().split('T')[0] : ''
+		};
+	} else if (!editingProject && isOpen) {
+		resetForm();
+	}
 
 	let loading = false;
 	let error: string | null = null;
@@ -53,8 +67,9 @@
 	}
 
 	async function handleSubmit() {
-		if (!formData.projectName.trim()) {
-			error = 'Nome do projeto é obrigatório';
+		console.log('Submitting form data:', formData);
+		if (!formData.projectName.trim() || !formData.phase) {
+			error = 'Nome do projeto e fase são obrigatórios';
 			return;
 		}
 
@@ -67,23 +82,28 @@
 				phase: formData.phase,
 				status: formData.status,
 				progress: formData.progress,
-				startDate: formData.startDate || undefined,
-				endDate: formData.endDate || undefined
+				startDate: formData.startDate || null,
+				endDate: formData.endDate || null
 			};
 
-			await fetchAPI('/status', {
-				method: 'POST',
+			const url = editingProject ? `/status/${editingProject.id}` : '/status';
+			const method = editingProject ? 'PUT' : 'POST';
+
+			console.log(`🚀 Sending ${method} request to ${url}`);
+			const result = await fetchAPI(url, {
+				method,
 				headers: {
 					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify(payload)
 			});
+			console.log('✅ Server response:', result);
 
 			dispatch('success');
 			closeModal();
 		} catch (err: any) {
-			error = err.message || 'Falha ao criar projeto';
-			console.error('Error creating project:', err);
+			error = err.message || 'Falha ao salvar projeto';
+			console.error('Error saving project:', err);
 		} finally {
 			loading = false;
 		}
@@ -122,7 +142,7 @@
 
 	<div class="modal-content" role="document">
 		<div class="modal-header">
-			<h3 id="modal-title">Adicionar Novo Projeto</h3>
+			<h3 id="modal-title">{editingProject ? 'Editar Projeto' : 'Adicionar Novo Projeto'}</h3>
 			<button class="close-btn" on:click={closeModal} aria-label="Fechar modal">
 				&times;
 			</button>
@@ -206,7 +226,7 @@
 					Cancelar
 				</button>
 				<button type="submit" class="btn btn-primary" disabled={loading}>
-					{loading ? 'Criando...' : 'Criar Projeto'}
+					{loading ? 'Salvando...' : (editingProject ? 'Salvar Alterações' : 'Criar Projeto')}
 				</button>
 			</div>
 		</form>

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Building, Users, Package, Activity, Calendar, TrendingUp } from 'lucide-svelte';
+	import Icon from '@iconify/svelte';
 	import { fetchAPI } from '$lib/api';
 	import { BRAND_NAME } from '$lib/config';
 	import ProjectModal from '$lib/components/ProjectModal.svelte';
@@ -15,6 +16,7 @@
 		end: ''
 	};
 	let showProjectModal = false;
+	let editingProject: any = null;
 
 	onMount(async () => {
 		await fetchData();
@@ -48,21 +50,36 @@
 }
 
 
-function openProjectModal() {
-	showProjectModal = true;
-}
-
-function handleProjectCreated() {
-	fetchData();
-}
-
-function clearFilters() {
-	selectedDateRange = {
-		start: '',
-		end: ''
+	const openProjectModal = (project: any = null) => {
+		console.log('Opening modal for project:', project ? project.projectName : 'New Project');
+		editingProject = project;
+		showProjectModal = true;
 	};
-	fetchData();
-}
+
+	const handleProjectCreated = () => {
+		console.log('Project created/updated successfully');
+		editingProject = null;
+		fetchData();
+	};
+
+	const deleteProject = async (id: string) => {
+		if (!confirm('Tem certeza que deseja excluir este projeto?')) return;
+		
+		try {
+			await fetchAPI(`/status/${id}`, { method: 'DELETE' });
+			fetchData();
+		} catch (err: any) {
+			alert('Erro ao excluir projeto: ' + err.message);
+		}
+	};
+
+	const clearFilters = () => {
+		selectedDateRange = {
+			start: '',
+			end: ''
+		};
+		fetchData();
+	};
 
 	function getStatusColor(status: string) {
 		switch (status?.toLowerCase?.()) {
@@ -186,7 +203,10 @@ function clearFilters() {
 					<input id="end-date" type="date" class="form-input" bind:value={selectedDateRange.end} />
 				</div>
 				<div style="display: flex; gap: 0.5rem;">
-					<button class="btn btn-primary" on:click={fetchData}>Atualizar</button>
+					<button class="btn btn-primary" on:click={fetchData} style="display: flex; align-items: center; gap: 0.5rem;">
+						<Icon icon="ph:pencil-simple-line-bold" width="18" />
+						Atualizar
+					</button>
 					{#if selectedDateRange.start || selectedDateRange.end}
 						<button class="btn btn-secondary" on:click={clearFilters}>Limpar</button>
 					{/if}
@@ -198,7 +218,10 @@ function clearFilters() {
 		<div class="card">
 			<div class="card-header">
 					<h3 class="card-title">🏢 Painel de Status de Projetos</h3>
-					<button class="btn btn-secondary" on:click={openProjectModal}>Adicionar Novo Projeto</button>
+					<button class="btn btn-secondary" on:click={() => openProjectModal()} style="display: flex; align-items: center; gap: 0.5rem;">
+						<Icon icon="ph:plus-bold" width="18" />
+						Adicionar Novo Projeto
+					</button>
 				</div>
 			<div class="table-container">
 				<table class="table">
@@ -210,6 +233,7 @@ function clearFilters() {
 							<th>Progresso</th>
 							<th>Data de Início</th>
 							<th>Data Prevista</th>
+							<th style="text-align: center;">Ações</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -230,6 +254,19 @@ function clearFilters() {
 								</td>
 								<td>{project.startDate ? new Date(project.startDate).toLocaleDateString('pt-BR') : 'Não definido'}</td>
 								<td>{project.endDate ? new Date(project.endDate).toLocaleDateString('pt-BR') : 'Não definido'}</td>
+								<td>
+									<div style="display: flex; gap: 0.5rem; justify-content: center;">
+										<button class="action-btn view" title="Ver Detalhes" on:click={() => openProjectModal(project)}>
+											<Icon icon="ph:eye-bold" width="18" />
+										</button>
+										<button class="action-btn edit" title="Editar" on:click={() => openProjectModal(project)}>
+											<Icon icon="ph:pencil-simple-line-bold" width="18" />
+										</button>
+										<button class="action-btn delete" title="Excluir" on:click={() => deleteProject(project.id)}>
+											<Icon icon="ph:trash-bold" width="18" />
+										</button>
+									</div>
+								</td>
 							</tr>
 						{/each}
 					</tbody>
@@ -285,7 +322,9 @@ function clearFilters() {
 	<!-- Project Modal -->
 	<ProjectModal 
 		bind:isOpen={showProjectModal}
+		bind:editingProject={editingProject}
 		on:success={handleProjectCreated}
+		on:close={() => editingProject = null}
 	/>
 	</main>
 </div>
@@ -355,5 +394,31 @@ function clearFilters() {
 
 	.btn-retry:hover {
 		background: var(--primary-dark);
+	}
+
+	.nav-item:hover {
+		background: rgba(255,255,255,0.1);
+		color: white;
+	}
+
+	.action-btn {
+		background: none;
+		border: none;
+		cursor: pointer;
+		padding: 0.4rem;
+		border-radius: 4px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: all 0.2s;
+	}
+
+	.action-btn.view { color: #1976d2; }
+	.action-btn.edit { color: #f57c00; }
+	.action-btn.delete { color: #c62828; }
+
+	.action-btn:hover {
+		background: rgba(0,0,0,0.05);
+		transform: scale(1.1);
 	}
 </style>

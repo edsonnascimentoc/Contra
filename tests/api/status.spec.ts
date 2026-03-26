@@ -15,6 +15,18 @@ vi.mock('../../server/database/init.js', () => {
           store.unshift(item)
           return item
         }),
+        upsert: vi.fn(async ({ where, update, create }: any) => {
+          const key = where.projectName_phase
+          const idx = store.findIndex((s) => s.projectName === key.projectName && s.phase === key.phase)
+          if (idx >= 0) {
+            store[idx] = { ...store[idx], ...update, updatedAt: new Date() }
+            return store[idx]
+          } else {
+            const item = { id: 'new-id', ...create, createdAt: new Date(), updatedAt: new Date() }
+            store.unshift(item)
+            return item
+          }
+        }),
         update: vi.fn(async ({ where, data }: any) => {
           const idx = store.findIndex((s) => s.id === where.id)
           if (idx >= 0) {
@@ -68,7 +80,7 @@ describe('Status routes', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        project_name: 'B',
+        projectName: 'B',
         phase: 'INIT',
         status: 'IN_PROGRESS',
         progress: 5

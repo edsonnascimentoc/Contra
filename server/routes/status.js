@@ -123,29 +123,32 @@ router.post('/', async (req, res) => {
   try {
     const { projectName, phase, status, progress, startDate, endDate } = req.body;
     
-    const statusItem = await db.statusBoard.upsert({
-      where: {
-        projectName_phase: {
-          projectName,
-          phase
-        }
-      },
+    if (!projectName || !phase) {
+      return res.status(400).json({ error: 'Nome do projeto e fase são obrigatórios' });
+    }
+
+    const start = startDate ? new Date(String(startDate)) : null;
+    const end = endDate ? new Date(String(endDate)) : null;
+
+    const item = await db.statusBoard.upsert({
+      where: { projectName_phase: { projectName, phase } },
       update: {
         status,
-        progress: progress || 0,
-        startDate: startDate ? new Date(startDate) : undefined,
-        endDate: endDate ? new Date(endDate) : undefined
+        progress: Number(progress) || 0,
+        startDate: start,
+        endDate: end
       },
       create: {
         projectName,
         phase,
         status,
-        progress: progress || 0,
-        startDate: startDate ? new Date(startDate) : null,
-        endDate: endDate ? new Date(endDate) : null
+        progress: Number(progress) || 0,
+        startDate: start,
+        endDate: end
       }
     });
-    res.json(statusItem);
+
+    res.json(item);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('Error creating/updating status item:', message);
@@ -156,19 +159,25 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { progress, status } = req.body;
-    
+    const { projectName, phase, progress, status, startDate, endDate } = req.body;
+
     const updateData = {};
-    if (progress !== undefined) updateData.progress = progress;
+    if (projectName !== undefined) updateData.projectName = projectName;
+    if (phase !== undefined) updateData.phase = phase;
+    if (progress !== undefined) updateData.progress = Number(progress);
     if (status !== undefined) updateData.status = status;
-    
-    const statusItem = await db.statusBoard.update({
+    if (startDate !== undefined) updateData.startDate = startDate ? new Date(String(startDate)) : null;
+    if (endDate !== undefined) updateData.endDate = endDate ? new Date(String(endDate)) : null;
+
+    const item = await db.statusBoard.update({
       where: { id },
       data: updateData
     });
-    res.json(statusItem);
+
+    res.json(item);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    console.error('Error updating status item:', message);
     res.status(500).json({ error: message });
   }
 });
