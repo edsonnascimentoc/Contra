@@ -1,6 +1,6 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './auth-setup';
 
-test('Dashboard carrega e exibe cabeçalho', async ({ page }) => {
-  await page.goto('http://localhost:4173/');
+test('Dashboard carrega e exibe cabeçalho após login', async ({ authenticatedPage: page }) => {
+  // O authenticatedPage já realiza o login e redireciona para o dashboard
   await expect(page.locator('h1')).toHaveText(/Dashboard de Status da Construção/i);
 });

@@ -3,16 +3,18 @@
 	import { Users, Plus, Edit, Trash2, Search } from 'lucide-svelte';
 	import { fetchAPI } from '$lib/api';
 	import { API_BASE, BRAND_NAME } from '$lib/config';
+	import { auth } from '$lib/stores/auth.svelte';
+	import { goto } from '$app/navigation';
 
-	let laborData: any[] = [];
-	let filteredData: any[] = [];
-	let showForm = false;
-	let editingId: number | null = null;
-	let searchTerm = '';
-	let filterType = 'ALL';
-	let loading = true;
-	let error: string | null = null;
-	let formData = {
+	let laborData = $state<any[]>([]);
+	let filteredData = $state<any[]>([]);
+	let showForm = $state(false);
+	let editingId = $state<number | null>(null);
+	let searchTerm = $state('');
+	let filterType = $state('ALL');
+	let loading = $state(true);
+	let error = $state<string | null>(null);
+	let formData = $state({
 		name: '',
 		designation: '',
 		department: '',
@@ -20,11 +22,18 @@
 		daily_rate: 0,
 		type: 'STAFF',
 		status: 'ACTIVE'
-	};
+	});
+
 
 	onMount(async () => {
+		// Proteção de rota via frontend
+		if (auth.user?.role !== 'ADMIN' && auth.user?.role !== 'MANAGER') {
+			goto('/');
+			return;
+		}
 		await fetchLabor();
 	});
+
 
 	async function fetchLabor() {
 		loading = true;
@@ -54,13 +63,14 @@
 		});
 	}
 	
-	$: {
+	$effect(() => {
 		searchTerm;
 		filterType;
 		applyFilters();
-	}
+	});
 	
 	function openForm(labor: any = null) {
+
 		if (labor) {
 			editingId = labor.id;
 			formData = {
@@ -222,18 +232,28 @@
 				<span style="display: inline; margin-right: 0.75rem;">📊</span>
 				Painel de Status
 			</a>
-			<a href="/labor" class="nav-item active">
-				<Users size={20} style="display: inline; margin-right: 0.75rem;" />
-				Gestão de Mão de Obra
-			</a>
-			<a href="/materials" class="nav-item">
-				<span style="display: inline; margin-right: 0.75rem;">📦</span>
-				Materiais e P&M
-			</a>
-			<a href="/daily-updates" class="nav-item">
-				<span style="display: inline; margin-right: 0.75rem;">📅</span>
-				Atualizações Diárias
-			</a>
+			
+			{#if auth.user?.role === 'ADMIN' || auth.user?.role === 'MANAGER'}
+				<a href="/labor" class="nav-item active">
+					<Users size={20} style="display: inline; margin-right: 0.75rem;" />
+					Gestão de Mão de Obra
+				</a>
+			{/if}
+
+			{#if auth.user?.role === 'ADMIN' || auth.user?.role === 'MANAGER' || auth.user?.role === 'SUPERVISOR'}
+				<a href="/materials" class="nav-item">
+					<span style="display: inline; margin-right: 0.75rem;">📦</span>
+					Materiais e P&M
+				</a>
+			{/if}
+
+			{#if auth.user?.role !== 'CLIENT'}
+				<a href="/daily-updates" class="nav-item">
+					<span style="display: inline; margin-right: 0.75rem;">📅</span>
+					Atualizações Diárias
+				</a>
+			{/if}
+
 			<a href="/reports" class="nav-item">
 				<span style="display: inline; margin-right: 0.75rem;">📈</span>
 				Relatórios
@@ -247,7 +267,7 @@
 				<h1>Gestão de Mão de Obra</h1>
 				<p class="subtitle">Controle de Funcionários, NMT e Contratados</p>
 			</div>
-			<button class="btn-primary" on:click={() => openForm()}>
+			<button class="btn-primary" onclick={() => openForm()}>
 				<Plus size={20} style="margin-right: 0.5rem;" />
 				Adicionar Trabalhador
 			</button>
@@ -260,32 +280,32 @@
 					type="text"
 					placeholder="Buscar por nome, cargo ou departamento..."
 					bind:value={searchTerm}
-					on:input={applyFilters}
+					oninput={applyFilters}
 				/>
 			</div>
 
 			<div class="filter-buttons">
 				<button
 					class="filter-btn {filterType === 'ALL' ? 'active' : ''}"
-					on:click={() => { filterType = 'ALL'; applyFilters(); }}
+					onclick={() => { filterType = 'ALL'; applyFilters(); }}
 				>
 					Todos ({laborData.length})
 				</button>
 				<button
 					class="filter-btn {filterType === 'STAFF' ? 'active' : ''}"
-					on:click={() => { filterType = 'STAFF'; applyFilters(); }}
+					onclick={() => { filterType = 'STAFF'; applyFilters(); }}
 				>
 					Funcionários ({laborData.filter(l => l.type === 'STAFF').length})
 				</button>
 				<button
 					class="filter-btn {filterType === 'NMT' ? 'active' : ''}"
-					on:click={() => { filterType = 'NMT'; applyFilters(); }}
+					onclick={() => { filterType = 'NMT'; applyFilters(); }}
 				>
 					NMT ({laborData.filter(l => l.type === 'NMT').length})
 				</button>
 				<button
 					class="filter-btn {filterType === 'CONTRACT' ? 'active' : ''}"
-					on:click={() => { filterType = 'CONTRACT'; applyFilters(); }}
+					onclick={() => { filterType = 'CONTRACT'; applyFilters(); }}
 				>
 					Contratados ({laborData.filter(l => l.type === 'CONTRACT').length})
 				</button>
@@ -301,13 +321,13 @@
 			<div class="error-state">
 				<h3>⚠️ Erro ao Carregar Dados</h3>
 				<p>{error}</p>
-				<button on:click={fetchLabor} class="btn-retry">Tentar Novamente</button>
+				<button onclick={fetchLabor} class="btn-retry">Tentar Novamente</button>
 			</div>
 		{:else if laborData.length === 0}
 			<div class="empty-state">
 				<h3>📋 Nenhum registro encontrado</h3>
 				<p>Comece adicionando seu primeiro registro de mão de obra.</p>
-				<button on:click={() => openForm()} class="btn-primary">
+				<button onclick={() => openForm()} class="btn-primary">
 					<Plus size={20} style="margin-right: 0.5rem;" />
 					Adicionar Primeiro Registro
 				</button>
@@ -352,10 +372,10 @@
 								</td>
 								<td>
 									<div class="action-buttons">
-										<button class="btn-icon" on:click={() => openForm(labor)} title="Editar">
+										<button class="btn-icon" onclick={() => openForm(labor)} title="Editar">
 											<Edit size={16} />
 										</button>
-										<button class="btn-icon btn-danger" on:click={() => deleteLabor(labor.id, labor.name)} title="Excluir">
+										<button class="btn-icon btn-danger" onclick={() => deleteLabor(labor.id, labor.name)} title="Excluir">
 											<Trash2 size={16} />
 										</button>
 									</div>
@@ -378,11 +398,11 @@
 	</main>
 </div>
 {#if showForm}
-	<div class="modal-overlay" role="button" tabindex="0" on:click={closeForm} on:keydown={(e) => e.key === 'Escape' && closeForm()}>
-		<div class="modal-content" role="dialog" tabindex="-1" on:click|stopPropagation on:keydown={(e) => e.key === 'Escape' && closeForm()}>
+	<div class="modal-overlay" role="button" tabindex="0" onclick={closeForm} onkeydown={(e) => e.key === 'Escape' && closeForm()}>
+		<div class="modal-content" role="dialog" tabindex="-1" onclick={(e) => e.stopPropagation()} onkeydown={(e) => e.key === 'Escape' && closeForm()}>
 			<h2>{editingId ? 'Editar' : 'Adicionar'} Trabalhador</h2>
 
-			<form on:submit|preventDefault={saveLabor}>
+			<form onsubmit={(e) => { e.preventDefault(); saveLabor(); }}>
 				<div class="form-group">
 					<label for="name">Nome Completo *</label>
 					<input type="text" id="name" bind:value={formData.name} required placeholder="Digite o nome completo" />
@@ -407,7 +427,7 @@
 							type="text"
 							id="contact"
 							value={formData.contact}
-							on:input={handlePhoneInput}
+							oninput={handlePhoneInput}
 							placeholder="(13)98899-9906"
 							maxlength="14"
 							required
@@ -448,7 +468,7 @@
 				</div>
 				
 				<div class="form-actions">
-					<button type="button" class="btn-secondary" on:click={closeForm}>
+					<button type="button" class="btn-secondary" onclick={closeForm}>
 						Cancelar
 					</button>
 					<button type="submit" class="btn-primary">

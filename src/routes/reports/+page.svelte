@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { TrendingUp } from 'lucide-svelte';
+	import { auth } from '$lib/stores/auth.svelte';
 </script>
 
 <svelte:head>
@@ -18,18 +19,28 @@
 				<span style="display: inline; margin-right: 0.75rem;">📊</span>
 				Status Board
 			</a>
-			<a href="/labor" class="nav-item">
-				<span style="display: inline; margin-right: 0.75rem;">👥</span>
-				Labor Management
-			</a>
-			<a href="/materials" class="nav-item">
-				<span style="display: inline; margin-right: 0.75rem;">📦</span>
-				Materials & P&M
-			</a>
-			<a href="/daily-updates" class="nav-item">
-				<span style="display: inline; margin-right: 0.75rem;">📅</span>
-				Daily Updates
-			</a>
+			
+			{#if auth.user?.role === 'ADMIN' || auth.user?.role === 'MANAGER'}
+				<a href="/labor" class="nav-item">
+					<span style="display: inline; margin-right: 0.75rem;">👥</span>
+					Labor Management
+				</a>
+			{/if}
+
+			{#if auth.user?.role === 'ADMIN' || auth.user?.role === 'MANAGER' || auth.user?.role === 'SUPERVISOR'}
+				<a href="/materials" class="nav-item">
+					<span style="display: inline; margin-right: 0.75rem;">📦</span>
+					Materials & P&M
+				</a>
+			{/if}
+
+			{#if auth.user?.role !== 'CLIENT'}
+				<a href="/daily-updates" class="nav-item">
+					<span style="display: inline; margin-right: 0.75rem;">📅</span>
+					Daily Updates
+				</a>
+			{/if}
+
 			<a href="/reports" class="nav-item active">
 				<TrendingUp size={20} style="display: inline; margin-right: 0.75rem;" />
 				Reports

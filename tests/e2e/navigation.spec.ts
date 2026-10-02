@@ -1,9 +1,8 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './auth-setup';
 
 test.describe('Navegação principal', () => {
-  test('Dashboard, Labor, Materials e Daily Updates', async ({ page }) => {
-    // Dashboard
-    await page.goto('http://localhost:4173/');
+  test('Dashboard, Labor, Materials e Daily Updates após login', async ({ authenticatedPage: page }) => {
+    // Dashboard (já logado via authenticatedPage)
     await expect(page.locator('h1')).toHaveText(/Dashboard de Status da Construção/i);
 
     // Labor

@@ -1,6 +1,16 @@
 	<script lang="ts">
 		import { Package } from 'lucide-svelte';
 		import { BRAND_NAME } from '$lib/config';
+		import { auth } from '$lib/stores/auth.svelte';
+		import { onMount } from 'svelte';
+		import { goto } from '$app/navigation';
+
+		onMount(() => {
+			const allowedRoles = ['ADMIN', 'MANAGER', 'SUPERVISOR'];
+			if (!auth.user || !allowedRoles.includes(auth.user.role)) {
+				goto('/');
+			}
+		});
 	</script>
 
 	<svelte:head>

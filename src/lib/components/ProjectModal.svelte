@@ -1,36 +1,40 @@
 <script lang="ts">
-	import { createEventDispatcher } from 'svelte';
 	import { fetchAPI } from '$lib/api';
 
-	export let isOpen = false;
-	export let editingProject: any = null;
+	let { 
+		isOpen = $bindable(false), 
+		editingProject = $bindable(null),
+		onsuccess,
+		onclose
+	} = $props();
 
-	const dispatch = createEventDispatcher();
-
-	let formData = {
+	let formData = $state({
 		projectName: '',
 		phase: 'Construção',
 		status: 'PLANNING',
 		progress: 0,
 		startDate: '',
 		endDate: ''
-	};
+	});
 
-	$: if (editingProject && isOpen) {
-		formData = {
-			projectName: editingProject.projectName,
-			phase: editingProject.phase,
-			status: editingProject.status,
-			progress: editingProject.progress || 0,
-			startDate: editingProject.startDate ? new Date(editingProject.startDate).toISOString().split('T')[0] : '',
-			endDate: editingProject.endDate ? new Date(editingProject.endDate).toISOString().split('T')[0] : ''
-		};
-	} else if (!editingProject && isOpen) {
-		resetForm();
-	}
+	$effect(() => {
+		if (editingProject && isOpen) {
+			formData = {
+				projectName: editingProject.projectName,
+				phase: editingProject.phase,
+				status: editingProject.status,
+				progress: editingProject.progress || 0,
+				startDate: editingProject.startDate ? new Date(editingProject.startDate).toISOString().split('T')[0] : '',
+				endDate: editingProject.endDate ? new Date(editingProject.endDate).toISOString().split('T')[0] : ''
+			};
+		} else if (!editingProject && isOpen) {
+			resetForm();
+		}
+	});
 
-	let loading = false;
-	let error: string | null = null;
+	let loading = $state(false);
+	let error = $state<string | null>(null);
+
 
 	const phases = [
 		'Construção',
@@ -63,8 +67,9 @@
 	function closeModal() {
 		isOpen = false;
 		resetForm();
-		dispatch('close');
+		onclose?.();
 	}
+
 
 	// T6 — Função segura de parse — usar em todo bind de data
 	function parseInputDate(value: string) {
@@ -126,9 +131,10 @@
 			});
 			console.log('✅ Server response:', result);
 
-			dispatch('success');
+			onsuccess?.();
 			closeModal();
 		} catch (err: any) {
+
 			error = err.message || 'Falha ao salvar projeto';
 			console.error('Error saving project:', err);
 		} finally {
@@ -151,7 +157,7 @@
 	}
 </script>
 
-<svelte:window on:keydown={(e) => isOpen && handleKeydown(e)} />
+<svelte:window onkeydown={(e) => isOpen && handleKeydown(e)} />
 
 {#if isOpen}
 	<div
@@ -163,19 +169,19 @@
 >
 	<button
 		class="modal-overlay"
-		on:click={closeModal}
+		onclick={closeModal}
 		aria-label="Close modal"
 	></button>
 
 	<div class="modal-content" role="document">
 		<div class="modal-header">
 			<h3 id="modal-title">{editingProject ? 'Editar Projeto' : 'Adicionar Novo Projeto'}</h3>
-			<button class="close-btn" on:click={closeModal} aria-label="Fechar modal">
+			<button class="close-btn" onclick={closeModal} aria-label="Fechar modal">
 				&times;
 			</button>
 		</div>
 
-		<form on:submit|preventDefault={handleSubmit}>
+		<form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
 			<div class="form-group">
 				<label class="form-label" for="project-name">Nome do Projeto *</label>
 				<input
@@ -250,12 +256,12 @@
 				<div class="error-message">{error}</div>
 			{/if}
 
-			<div class="modal-actions">
-				<button type="button" class="btn btn-secondary" on:click={closeModal}>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" onclick={closeModal}>
 					Cancelar
 				</button>
 				<button type="submit" class="btn btn-primary" disabled={loading}>
-					{loading ? 'Salvando...' : (editingProject ? 'Salvar Alterações' : 'Criar Projeto')}
+					{loading ? 'Salvando...' : (editingProject ? 'Atualizar' : 'Salvar')}
 				</button>
 			</div>
 		</form>

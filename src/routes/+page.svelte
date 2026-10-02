@@ -1,26 +1,32 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Building, Users, Package, Activity, Calendar, TrendingUp } from 'lucide-svelte';
+	import { Building, Users, Package, Activity, Calendar, TrendingUp, LogOut, Plus } from 'lucide-svelte';
 	import Icon from '@iconify/svelte';
 	import { fetchAPI } from '$lib/api';
 	import { BRAND_NAME } from '$lib/config';
+	import { auth } from '$lib/stores/auth.svelte';
 	import ProjectModal from '$lib/components/ProjectModal.svelte';
 
-	let statusData: any[] = [];
-	let phases: any[] = [];
-	let dailyStats: any = {};
-	let loading = true;
-	let error: string | null = null;
-	let selectedDateRange = {
+	let statusData = $state<any[]>([]);
+	let phases = $state<any[]>([]);
+	let dailyStats = $state<any>({});
+	let loading = $state(true);
+	let error = $state<string | null>(null);
+	let selectedDateRange = $state({
 		start: '',
 		end: ''
-	};
-	let showProjectModal = false;
-	let editingProject: any = null;
+	});
+	let showProjectModal = $state(false);
+	let editingProject = $state<any>(null);
+
+
+	// Permissões
+	const canManageProjects = $derived(auth.user?.role === 'ADMIN' || auth.user?.role === 'MANAGER');
 
 	onMount(async () => {
 		await fetchData();
 	});
+
 
 	async function fetchData() {
 	loading = true;
@@ -50,6 +56,7 @@
 }
 
 
+
 	const openProjectModal = (project: any = null) => {
 		console.log('Opening modal for project:', project ? project.projectName : 'New Project');
 		editingProject = project;
@@ -61,6 +68,7 @@
 		editingProject = null;
 		fetchData();
 	};
+
 
 	const deleteProject = async (id: string) => {
 		if (!confirm('Tem certeza que deseja excluir este projeto?')) return;
@@ -129,31 +137,64 @@
 				<Activity size={20} style="display: inline; margin-right: 0.75rem;" />
 				Painel de Status
 			</a>
-			<a href="/labor" class="nav-item">
-				<Users size={20} style="display: inline; margin-right: 0.75rem;" />
-				Gestão de Mão de Obra
-			</a>
-			<a href="/materials" class="nav-item">
-				<Package size={20} style="display: inline; margin-right: 0.75rem;" />
-				Materiais e P&M
-			</a>
-			<a href="/daily-updates" class="nav-item">
-				<Calendar size={20} style="display: inline; margin-right: 0.75rem;" />
-				Atualizações Diárias
-			</a>
+			
+			{#if auth.user?.role === 'ADMIN' || auth.user?.role === 'MANAGER'}
+				<a href="/labor" class="nav-item">
+					<Users size={20} style="display: inline; margin-right: 0.75rem;" />
+					Gestão de Mão de Obra
+				</a>
+			{/if}
+
+			{#if auth.user?.role === 'ADMIN' || auth.user?.role === 'MANAGER' || auth.user?.role === 'SUPERVISOR'}
+				<a href="/materials" class="nav-item">
+					<Package size={20} style="display: inline; margin-right: 0.75rem;" />
+					Materiais e P&M
+				</a>
+			{/if}
+
+			{#if auth.user?.role !== 'CLIENT'}
+				<a href="/daily-updates" class="nav-item">
+					<Calendar size={20} style="display: inline; margin-right: 0.75rem;" />
+					Atualizações Diárias
+				</a>
+			{/if}
+
 			<a href="/reports" class="nav-item">
 				<TrendingUp size={20} style="display: inline; margin-right: 0.75rem;" />
 				Relatórios
 			</a>
+
+			<button 
+				onclick={() => auth.logout()} 
+				class="nav-item" 
+				style="width: 100%; text-align: left; background: none; border: none; cursor: pointer; color: #ff6b6b; margin-top: 2rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem;"
+			>
+				<LogOut size={20} style="display: inline; margin-right: 0.75rem;" />
+				Sair do Sistema
+			</button>
 		</div>
 	</nav>
 
 	<!-- Main Content -->
 	<main class="main-content">
 		<!-- Header -->
-		<div class="header">
-			<h1>Dashboard de Status da Construção</h1>
-			<p class="subtitle">Visão geral em tempo real de todas as atividades • {new Date().toLocaleDateString('pt-BR')}</p>
+		<div class="header" style="display: flex; justify-content: space-between; align-items: start;">
+			<div>
+				<h1>Dashboard de Status da Construção</h1>
+				<p class="subtitle">Visão geral em tempo real de todas as atividades • {new Date().toLocaleDateString('pt-BR')}</p>
+			</div>
+			
+			{#if auth.user}
+				<div class="user-badge" style="background: rgba(212, 175, 55, 0.1); padding: 0.5rem 1rem; border-radius: 2rem; border: 1px solid var(--primary-color); display: flex; align-items: center; gap: 0.75rem;">
+					<div style="width: 32px; height: 32px; background: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+						{auth.user.firstName[0]}{auth.user.lastName[0]}
+					</div>
+					<div style="text-align: left;">
+						<div style="font-size: 0.85rem; font-weight: 600; color: #1a1a1a;">{auth.user.firstName} {auth.user.lastName}</div>
+						<div style="font-size: 0.7rem; color: #666; text-transform: uppercase; letter-spacing: 0.05em;">{auth.user.role}</div>
+					</div>
+				</div>
+			{/if}
 		</div>
 
 		{#if loading}
@@ -165,7 +206,7 @@
 			<div class="error-state">
 				<h3>⚠️ Erro ao Carregar Dados</h3>
 				<p>{error}</p>
-				<button on:click={fetchData} class="btn-retry">Tentar Novamente</button>
+				<button onclick={fetchData} class="btn-retry">Tentar Novamente</button>
 			</div>
 		{:else}
 			<!-- Dashboard Statistics -->
@@ -203,12 +244,12 @@
 					<input id="end-date" type="date" class="form-input" bind:value={selectedDateRange.end} />
 				</div>
 				<div style="display: flex; gap: 0.5rem;">
-					<button class="btn btn-primary" on:click={fetchData} style="display: flex; align-items: center; gap: 0.5rem;">
+					<button class="btn btn-primary" onclick={fetchData} style="display: flex; align-items: center; gap: 0.5rem;">
 						<Icon icon="ph:pencil-simple-line-bold" width="18" />
 						Atualizar
 					</button>
 					{#if selectedDateRange.start || selectedDateRange.end}
-						<button class="btn btn-secondary" on:click={clearFilters}>Limpar</button>
+						<button class="btn btn-secondary" onclick={clearFilters}>Limpar</button>
 					{/if}
 				</div>
 			</div>
@@ -218,10 +259,12 @@
 		<div class="card">
 			<div class="card-header">
 					<h3 class="card-title">🏢 Painel de Status de Projetos</h3>
-					<button class="btn btn-secondary" on:click={() => openProjectModal()} style="display: flex; align-items: center; gap: 0.5rem;">
-						<Icon icon="ph:plus-bold" width="18" />
-						Adicionar Novo Projeto
-					</button>
+					{#if canManageProjects}
+						<button class="btn btn-secondary" onclick={() => openProjectModal()} style="display: flex; align-items: center; gap: 0.5rem;">
+							<Plus size={18} />
+							Adicionar Novo Projeto
+						</button>
+					{/if}
 				</div>
 			<div class="table-container">
 				<table class="table">
@@ -233,7 +276,9 @@
 							<th>Progresso</th>
 							<th>Data de Início</th>
 							<th>Data Prevista</th>
-							<th style="text-align: center;">Ações</th>
+							{#if canManageProjects}
+								<th style="text-align: center;">Ações</th>
+							{/if}
 						</tr>
 					</thead>
 					<tbody>
@@ -254,19 +299,21 @@
 								</td>
 								<td>{project.startDate ? new Date(project.startDate).toLocaleDateString('pt-BR') : 'Não definido'}</td>
 								<td>{project.endDate ? new Date(project.endDate).toLocaleDateString('pt-BR') : 'Não definido'}</td>
-								<td>
-									<div style="display: flex; gap: 0.5rem; justify-content: center;">
-										<button class="action-btn view" title="Ver Detalhes" on:click={() => openProjectModal(project)}>
-											<Icon icon="ph:eye-bold" width="18" />
-										</button>
-										<button class="action-btn edit" title="Editar" on:click={() => openProjectModal(project)}>
-											<Icon icon="ph:pencil-simple-line-bold" width="18" />
-										</button>
-										<button class="action-btn delete" title="Excluir" on:click={() => deleteProject(project.id)}>
-											<Icon icon="ph:trash-bold" width="18" />
-										</button>
-									</div>
-								</td>
+								{#if canManageProjects}
+									<td>
+										<div style="display: flex; gap: 0.5rem; justify-content: center;">
+											<button class="action-btn view" title="Ver Detalhes" onclick={() => openProjectModal(project)}>
+												<Icon icon="ph:eye-bold" width="18" />
+											</button>
+											<button class="action-btn edit" title="Editar" onclick={() => openProjectModal(project)}>
+												<Icon icon="ph:pencil-simple-line-bold" width="18" />
+											</button>
+											<button class="action-btn delete" title="Excluir" onclick={() => deleteProject(project.id)}>
+												<Icon icon="ph:trash-bold" width="18" />
+											</button>
+										</div>
+									</td>
+								{/if}
 							</tr>
 						{/each}
 					</tbody>
@@ -318,16 +365,17 @@
 		</div>
 
 			{/if}
+	</main>
 	
 	<!-- Project Modal -->
 	<ProjectModal 
 		bind:isOpen={showProjectModal}
 		bind:editingProject={editingProject}
-		on:success={handleProjectCreated}
-		on:close={() => editingProject = null}
+		onsuccess={handleProjectCreated}
+		onclose={() => { editingProject = null; }}
 	/>
-	</main>
 </div>
+
 
 <style>
 	.table-container {

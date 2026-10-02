@@ -1,6 +1,15 @@
 	<script lang="ts">
 		import { Calendar } from 'lucide-svelte';
 		import { BRAND_NAME } from '$lib/config';
+		import { auth } from '$lib/stores/auth.svelte';
+		import { onMount } from 'svelte';
+		import { goto } from '$app/navigation';
+
+		onMount(() => {
+			if (auth.user?.role === 'CLIENT') {
+				goto('/');
+			}
+		});
 	</script>
 
 	<svelte:head>
@@ -19,18 +28,28 @@
 				<span style="display: inline; margin-right: 0.75rem;">📊</span>
 				Painel de Status
 			</a>
-			<a href="/labor" class="nav-item">
-				<span style="display: inline; margin-right: 0.75rem;">👥</span>
-				Gestão de Mão de Obra
-			</a>
-			<a href="/materials" class="nav-item">
-				<span style="display: inline; margin-right: 0.75rem;">📦</span>
-				Materiais e P&M
-			</a>
-			<a href="/daily-updates" class="nav-item active">
-				<Calendar size={20} style="display: inline; margin-right: 0.75rem;" />
-				Atualizações Diárias
-			</a>
+			
+			{#if auth.user?.role === 'ADMIN' || auth.user?.role === 'MANAGER'}
+				<a href="/labor" class="nav-item">
+					<span style="display: inline; margin-right: 0.75rem;">👥</span>
+					Gestão de Mão de Obra
+				</a>
+			{/if}
+
+			{#if auth.user?.role === 'ADMIN' || auth.user?.role === 'MANAGER' || auth.user?.role === 'SUPERVISOR'}
+				<a href="/materials" class="nav-item">
+					<span style="display: inline; margin-right: 0.75rem;">📦</span>
+					Materiais e P&M
+				</a>
+			{/if}
+
+			{#if auth.user?.role !== 'CLIENT'}
+				<a href="/daily-updates" class="nav-item active">
+					<Calendar size={20} style="display: inline; margin-right: 0.75rem;" />
+					Atualizações Diárias
+				</a>
+			{/if}
+
 			<a href="/reports" class="nav-item">
 				<span style="display: inline; margin-right: 0.75rem;">📈</span>
 				Relatórios

@@ -56,3 +56,10 @@ Geração de relatórios consolidados para diretoria e clientes.
 - **Normal**: Exportação rápida e precisa de relatórios de progresso, mão de obra e materiais em formatos portáteis (PDF) e editáveis (Excel).
 - **Atenção**: Formatação inconsistente em relatórios muito extensos ou demora excessiva no processamento de grandes volumes de dados.
 - **Crítico**: Geração de relatórios com dados divergentes da base de dados real ou falha total do serviço de geração de arquivos (ex: erro de memória no servidor), impedindo a prestação de contas.
+
+- **Cargo (Role)    E-mail                     Funcionalidade    Senha : password123**
+- ADMIN             admin@nationalgroup.in      Acesso total ao sistema (Gestão, Mão de Obra, etc). 
+- MANAGER           manager@nationalgroup.in    Gestão de projetos e equipes. 
+- SUPERVISOR        supervisor@nationalgroup.in Acompanhamento diário e supervisão de campo. 
+- WORKER            worker@nationalgroup.in     Visualização de tarefas e atualizações básicas. 
+- CLIENT            client@nationalgroup.in     Visualização de progresso e relatórios.
