@@ -1,9 +1,20 @@
 import bcrypt from 'bcryptjs';
-import jwt, { SignOptions } from 'jsonwebtoken';
+import jwt, { type SignOptions } from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS || '12');
+
+export const getJwtSecret = (): string => {
+  const secret = process.env.JWT_SECRET;
+  if (typeof secret !== 'string' || !secret.trim()) {
+    throw new Error('JWT_SECRET must be configured before starting the server or issuing tokens.');
+  }
+  return secret;
+};
+
+export const assertJwtSecretConfigured = (): void => {
+  getJwtSecret();
+};
 
 export type UserRole = 'ADMIN' | 'MANAGER' | 'SUPERVISOR' | 'WORKER' | 'CLIENT';
 
@@ -31,7 +42,7 @@ export const generateAccessToken = (payload: JWTPayload): string => {
     audience: 'construction-management-api',
   };
 
-  return jwt.sign(payload, JWT_SECRET, options);
+  return jwt.sign(payload, getJwtSecret(), options);
 };
 
 export const generateRefreshToken = (): string => {
@@ -41,12 +52,12 @@ export const generateRefreshToken = (): string => {
     audience: 'construction-management-api',
   };
 
-  return jwt.sign({}, JWT_SECRET, options);
+  return jwt.sign({}, getJwtSecret(), options);
 };
 
 export const verifyToken = (token: string): JWTPayload => {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET, {
+    const decoded = jwt.verify(token, getJwtSecret(), {
       issuer: 'construction-management',
       audience: 'construction-management-api',
     }) as JWTPayload;
