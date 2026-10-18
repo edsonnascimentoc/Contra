@@ -227,18 +227,18 @@ touch .env
 
 Edite o arquivo `.env` com as seguintes configurações:
 
-#### Configuração para Desenvolvimento Local (SQLite)
+#### Configuração para Desenvolvimento Local (PostgreSQL)
 
 ```env
 # Servidor
 PORT=3001
 NODE_ENV=development
 
-# Banco de Dados SQLite (Desenvolvimento)
-DATABASE_URL="file:./server/database/construction.db"
+# Banco de Dados PostgreSQL local
+DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/construction_db?schema=public"
 
 # Segurança
-JWT_SECRET=national_group_construction_secret_key_change_this_in_production_min_32_chars
+JWT_SECRET=<GENERATE_LOCALLY_WITH_NODE_CRYPTO_RANDOMBYTES_32>
 JWT_EXPIRES_IN=7d
 BCRYPT_ROUNDS=12
 
@@ -307,9 +307,9 @@ openssl rand -hex 32
 pwgen -s 64 1
 ```
 
-Copie a chave gerada e cole no arquivo `.env`:
+Copie a chave gerada para o `.env` local protegido ou para o gerenciador de segredos do ambiente. Nunca use o exemplo abaixo como valor real nem o registre em logs ou no controle de versão. Para referência, no `.env` local:
 ```env
-JWT_SECRET=a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6
+JWT_SECRET=<COLE_A_CHAVE_GERADA_LOCALMENTE>
 ```
 
 ### Passo 4: Configurar Permissões de Arquivos

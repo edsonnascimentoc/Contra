@@ -45,15 +45,20 @@ describe('Netlify API security', () => {
   let handler: (event: any, context: any) => Promise<any>;
 
   beforeEach(async () => {
+    vi.resetModules();
     vi.stubEnv('JWT_SECRET', 'test-only-jwt-secret');
+    vi.stubEnv('DATABASE_URL', 'postgresql://test:test@localhost:5432/test');
+    vi.stubEnv('ALLOWED_ORIGINS', 'https://allowed.example');
+    vi.stubEnv('RATE_LIMIT_MAX_REQUESTS', '1000');
+    vi.stubEnv('OPERATIONAL_RATE_LIMIT_MAX_REQUESTS', '2');
     ({ handler } = await import('../../netlify/functions/api.js'));
   });
 
-  const request = (httpMethod: string, path: string, role?: string) =>
+  const request = (httpMethod: string, path: string, role?: string, headers: Record<string, string> = {}) =>
     handler({
       httpMethod,
       path,
-      headers: role ? { 'x-test-role': role } : {},
+      headers: { ...(role ? { 'x-test-role': role } : {}), ...headers },
       body: null,
       isBase64Encoded: false,
     }, {});
@@ -85,11 +90,39 @@ describe('Netlify API security', () => {
     expect(deniedDailyWrite.statusCode).toBe(403);
   });
 
-  it('keeps login and refresh routes reachable without an access token', async () => {
+  it('keeps login, refresh and logout routes reachable without an access token', async () => {
     const login = await request('POST', '/api/auth/login');
     const refresh = await request('POST', '/api/auth/refresh');
+    const logout = await request('POST', '/api/auth/logout');
 
     expect(login.statusCode).toBe(200);
     expect(refresh.statusCode).toBe(200);
+    expect(logout.statusCode).toBe(200);
+  });
+
+  it('returns HTTP 429 when an operational route exceeds its per-route limit', async () => {
+    const first = await request('GET', '/api/status');
+    const second = await request('GET', '/api/status');
+    const limited = await request('GET', '/api/status');
+
+    expect(first.statusCode).toBe(401);
+    expect(second.statusCode).toBe(401);
+    expect(limited.statusCode).toBe(429);
+    expect(JSON.parse(limited.body).code).toBe('OPERATIONAL_RATE_LIMIT_EXCEEDED');
+  });
+
+  it('allows configured CORS origins and omits CORS access for other origins', async () => {
+    const preflight = await request('OPTIONS', '/api/labor', undefined, {
+      origin: 'https://allowed.example',
+      'access-control-request-method': 'POST',
+    });
+    const disallowed = await request('GET', '/api/labor', 'CLIENT', {
+      origin: 'https://denied.example',
+    });
+
+    expect(preflight.statusCode).toBe(204);
+    expect(preflight.headers['access-control-allow-origin']).toBe('https://allowed.example');
+    expect(disallowed.statusCode).toBe(200);
+    expect(disallowed.headers['access-control-allow-origin']).toBeUndefined();
   });
 });

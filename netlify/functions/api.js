@@ -6,7 +6,7 @@ import laborRoutes from '../../server/routes/labor.js';
 import materialsRoutes from '../../server/routes/materials.js';
 import dailyUpdatesRoutes from '../../server/routes/dailyUpdates.js';
 import authRoutes from '../../server/routes/auth.js';
-import { assertJwtSecretConfigured } from '../../server/utils/auth.js';
+import { assertRuntimeConfig } from '../../server/utils/runtime-config.js';
 import { authenticate } from '../../server/middleware/auth.middleware.js';
 import { registerOperationalRoutes } from '../../server/middleware/operational-access.js';
 import { setupSecurityMiddleware } from '../../server/middleware/security.middleware.js';
@@ -59,6 +59,6 @@ app.use('/api/*', (req, res) => {
 const serverlessHandler = serverless(app);
 
 export const handler = (event, context) => {
-  assertJwtSecretConfigured();
+  assertRuntimeConfig();
   return serverlessHandler(event, context);
 };

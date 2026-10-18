@@ -11,7 +11,7 @@ import laborRoutes from './routes/labor.js';
 import materialsRoutes from './routes/materials.js';
 import dailyUpdatesRoutes from './routes/dailyUpdates.js';
 import authRoutes from './routes/auth.js';
-import { assertJwtSecretConfigured } from './utils/auth.js';
+import { assertRuntimeConfig } from './utils/runtime-config.js';
 import { registerOperationalRoutes } from './middleware/operational-access.js';
 import { setupSecurityMiddleware } from './middleware/security.middleware.js';
 
@@ -33,7 +33,7 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 async function startServer() {
-  assertJwtSecretConfigured();
+  assertRuntimeConfig();
 
   setupSecurityMiddleware(app);
   app.use(express.json());

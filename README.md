@@ -26,17 +26,19 @@ A comprehensive construction site management application built with SvelteKit fr
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js (v18+ recommended)
+- Node.js 20 or later
 - npm or yarn
 
 ### Installation & Setup
 
 1. **Install dependencies**:
    ```bash
-   npm install
+   npm ci
    ```
 
-2. **Start the application**:
+2. **Configure required environment variables** in a local `.env` file (see `.env.example`) or in the deployment platform. Never commit the populated `.env` file.
+
+3. **Start the application**:
    ```bash
    # Start both frontend and backend
    npm run dev:all
@@ -46,7 +48,7 @@ A comprehensive construction site management application built with SvelteKit fr
    npm run dev       # Frontend (port 5173/5174)
    ```
 
-3. **Access the application**:
+4. **Access the application**:
    - **Frontend Dashboard**: http://localhost:5174
    - **Backend API**: http://localhost:3001
    - **API Health Check**: http://localhost:3001/api/health
@@ -160,16 +162,27 @@ project-a/
 
 ## 🔧 Environment Variables
 
-Create a `.env` file in the root directory:
+`JWT_SECRET` and `DATABASE_URL` are required before the API can start. The Node server loads `.env.${NODE_ENV}` when present, otherwise `.env`, from its current working directory. Generate a private secret locally with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`; do not paste the generated value into source control, issue comments, or logs. Changing it invalidates existing JWTs.
+
+`DATABASE_URL` must be a valid PostgreSQL connection URL for Prisma. URL-encode special characters in credentials. The application checks that this variable is non-empty at startup and reports connection failures without printing the URL.
+
+`ALLOWED_ORIGINS` is an optional comma-separated list of exact browser origins, including scheme and port where applicable. Development defaults to localhost ports 5173/5174. Production has no cross-origin defaults, so configure every required frontend origin explicitly. CORS only controls browser access to responses; it does not authenticate or authorize API requests.
+
+The API applies a global per-IP limit (`RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX_REQUESTS`), a failed-attempt limit on login/register/refresh, and per-operational-route limits (`OPERATIONAL_RATE_LIMIT_WINDOW_MS`, `OPERATIONAL_RATE_LIMIT_MAX_REQUESTS`). The current `express-rate-limit` memory store is local to each process. PM2 cluster workers and separate Netlify Function instances therefore do not share counters; use a shared store if an aggregate cross-instance quota is required. No shared rate-limit store is currently configured.
+
+For Netlify Functions, configure `JWT_SECRET`, `DATABASE_URL`, and `ALLOWED_ORIGINS` in the site's environment variables for the functions' deploy context. Netlify does not load the local `.env` file. For the Node/PM2 server, provide the same variables through the process environment or a protected `.env` file. Do not set production values in this repository or run deployment commands during local validation.
+
+The Node process (`npm run server` / `ecosystem.config.js`) and Netlify Function (`netlify/functions/api.js`, routed by `netlify.toml`) are the supported API entry points. Both validate required configuration and install shared security middleware. The CI runner uses Node 20; `package.json` supports Node 20 or later.
 
 ```env
 PORT=3001
 NODE_ENV=development
-JWT_SECRET=national_group_construction_secret_key_2025
-DATABASE_URL=postgresql://construction_admin:construction_pass@localhost:5432/construction_db
+JWT_SECRET=
+DATABASE_URL=
+ALLOWED_ORIGINS=http://localhost:5173,http://localhost:5174
 ```
 
-**Note:** The application now uses PostgreSQL. For local development, ensure PostgreSQL is running and the database is created. See `prisma/schema.prisma` for the complete schema definition.
+Copy `.env.example` to `.env`, then fill in the required values locally. See `prisma/schema.prisma` for the database provider and schema.
 
 ## 🏢 About National Group India
 
