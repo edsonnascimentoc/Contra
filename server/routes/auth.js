@@ -64,8 +64,8 @@ router.post('/login', async (req, res) => {
         refreshToken: refreshTokenString,
       },
     });
-  } catch (error) {
-    console.error('Login error:', error);
+  } catch {
+    console.error('Login failed due to an internal server error.');
     res.status(500).json({ success: false, error: 'Erro interno no servidor durante o login' });
   }
 });
@@ -98,8 +98,8 @@ router.post('/refresh', async (req, res) => {
       success: true,
       data: { accessToken },
     });
-  } catch (error) {
-    console.error('Refresh token error:', error);
+  } catch {
+    console.error('Token refresh failed due to an internal server error.');
     res.status(500).json({ success: false, error: 'Erro ao renovar token' });
   }
 });
@@ -116,8 +116,8 @@ router.post('/logout', async (req, res) => {
     }
 
     res.json({ success: true, message: 'Logout realizado com sucesso' });
-  } catch (error) {
-    console.error('Logout error:', error);
+  } catch {
+    console.error('Logout failed due to an internal server error.');
     res.status(500).json({ success: false, error: 'Erro ao realizar logout' });
   }
 });

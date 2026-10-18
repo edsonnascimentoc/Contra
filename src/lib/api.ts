@@ -1,20 +1,63 @@
 import { API_BASE } from './config';
 import { auth } from './stores/auth.svelte';
 
-let isRefreshing = false;
-let refreshSubscribers: ((token: string) => void)[] = [];
+const refreshRequests = new Map<string, Promise<string>>();
+let lastLoggedOutRefreshToken: string | null = null;
 
-function onTokenRefreshed(token: string) {
-  refreshSubscribers.map((callback) => callback(token));
-  refreshSubscribers = [];
-}
+function refreshAccessToken(refreshToken: string): Promise<string> {
+  const existingRequest = refreshRequests.get(refreshToken);
+  if (existingRequest) return existingRequest;
 
-function addRefreshSubscriber(callback: (token: string) => void) {
-  refreshSubscribers.push(callback);
+  if (lastLoggedOutRefreshToken !== refreshToken) {
+    lastLoggedOutRefreshToken = null;
+  }
+
+  let refreshRequest: Promise<string>;
+  refreshRequest = Promise.resolve()
+    .then(async () => {
+      try {
+        const refreshResponse = await fetch(`${API_BASE}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refreshToken })
+        });
+
+        if (!refreshResponse.ok) {
+          throw new Error('Sessão expirada. Faça login novamente.');
+        }
+
+        const { data } = await refreshResponse.json();
+        if (typeof data?.accessToken !== 'string' || !data.accessToken) {
+          throw new Error('Resposta inválida ao renovar a sessão.');
+        }
+
+        auth.updateAccessToken(data.accessToken);
+        return data.accessToken;
+      } catch (error) {
+        if (auth.refreshToken === refreshToken && lastLoggedOutRefreshToken !== refreshToken) {
+          lastLoggedOutRefreshToken = refreshToken;
+          try {
+            void auth.logout().catch(() => undefined);
+          } catch {
+            // Keep the refresh failure as the result for every waiting request.
+          }
+        }
+        throw error;
+      }
+    })
+    .finally(() => {
+      if (refreshRequests.get(refreshToken) === refreshRequest) {
+        refreshRequests.delete(refreshToken);
+      }
+    });
+
+  refreshRequests.set(refreshToken, refreshRequest);
+  return refreshRequest;
 }
 
 export async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers || {});
+  const accessTokenUsed = auth.accessToken;
   
   // Adicionar token se existir
   if (auth.accessToken) {
@@ -36,37 +79,9 @@ export async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): 
     
     // Tratar 401 (Não autorizado) - Tentar Refresh Token
     if (response.status === 401 && auth.refreshToken) {
-      if (!isRefreshing) {
-        isRefreshing = true;
-        try {
-          const refreshResponse = await fetch(`${API_BASE}/auth/refresh`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refreshToken: auth.refreshToken })
-          });
-
-          if (refreshResponse.ok) {
-            const { data } = await refreshResponse.json();
-            auth.updateAccessToken(data.accessToken);
-            isRefreshing = false;
-            onTokenRefreshed(data.accessToken);
-          } else {
-            // Se falhar o refresh, deslogar
-            isRefreshing = false;
-            await auth.logout();
-            throw new Error('Sessão expirada. Faça login novamente.');
-          }
-        } catch (e) {
-          isRefreshing = false;
-          await auth.logout();
-          throw e;
-        }
-      }
-
-      // Aguardar o refresh terminar se outra requisição já disparou
-      const newToken = await new Promise<string>((resolve) => {
-        addRefreshSubscriber((token) => resolve(token));
-      });
+      const newToken = auth.accessToken && auth.accessToken !== accessTokenUsed
+        ? auth.accessToken
+        : await refreshAccessToken(auth.refreshToken);
 
       // Refazer a requisição original com o novo token
       headers.set('Authorization', `Bearer ${newToken}`);

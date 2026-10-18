@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
-import { verifyToken, extractTokenFromHeader, JWTPayload, UserRole } from '../utils/auth';
+import type { Request, Response, NextFunction } from 'express';
+import { verifyToken, extractTokenFromHeader, type JWTPayload, type UserRole } from '../utils/auth';
 import prisma from '../database/prisma';
 
 export interface AuthRequest extends Request {

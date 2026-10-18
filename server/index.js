@@ -1,5 +1,4 @@
 import express from 'express';
-import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
@@ -12,7 +11,9 @@ import laborRoutes from './routes/labor.js';
 import materialsRoutes from './routes/materials.js';
 import dailyUpdatesRoutes from './routes/dailyUpdates.js';
 import authRoutes from './routes/auth.js';
-import { authenticate, authorize } from './middleware/auth.middleware.js';
+import { assertRuntimeConfig } from './utils/runtime-config.js';
+import { registerOperationalRoutes } from './middleware/operational-access.js';
+import { setupSecurityMiddleware } from './middleware/security.middleware.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,8 +33,9 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 async function startServer() {
-  // Middleware
-  app.use(cors());
+  assertRuntimeConfig();
+
+  setupSecurityMiddleware(app);
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
@@ -45,34 +47,13 @@ async function startServer() {
 
   // API Routes
   app.use('/api/auth', authRoutes);
-  
-  // Rotas protegidas com controle granular de acesso
-  // ADMIN: Acesso total
-  // MANAGER: Gestão de projetos e equipes
-  // SUPERVISOR: Acompanhamento diário e supervisão
-  // WORKER: Visualização e atualizações básicas
-  // CLIENT: Visualização de progresso e relatórios (Apenas Leitura)
 
-  // Status Board: Aberto para todos os usuários autenticados para leitura
-  app.use('/api/status', authenticate, statusRoutes);
-
-  // Labor: CLIENT pode visualizar (GET), mas não editar
-  app.use('/api/labor', authenticate, (req, res, next) => {
-    if (req.method === 'GET') return authorize('ADMIN', 'MANAGER', 'CLIENT')(req, res, next);
-    return authorize('ADMIN', 'MANAGER')(req, res, next);
-  }, laborRoutes);
-
-  // Materials: CLIENT pode visualizar (GET), mas não editar
-  app.use('/api/materials', authenticate, (req, res, next) => {
-    if (req.method === 'GET') return authorize('ADMIN', 'MANAGER', 'SUPERVISOR', 'CLIENT')(req, res, next);
-    return authorize('ADMIN', 'MANAGER', 'SUPERVISOR')(req, res, next);
-  }, materialsRoutes);
-
-  // Daily Updates: CLIENT pode visualizar (GET), mas não editar
-  app.use('/api/daily-updates', authenticate, (req, res, next) => {
-    if (req.method === 'GET') return authorize('ADMIN', 'MANAGER', 'SUPERVISOR', 'WORKER', 'CLIENT')(req, res, next);
-    return authorize('ADMIN', 'MANAGER', 'SUPERVISOR', 'WORKER')(req, res, next);
-  }, dailyUpdatesRoutes);
+  registerOperationalRoutes(app, {
+    status: statusRoutes,
+    labor: laborRoutes,
+    materials: materialsRoutes,
+    dailyUpdates: dailyUpdatesRoutes,
+  });
 
   // Health check
   app.get('/api/health', (req, res) => {
@@ -97,4 +78,7 @@ async function startServer() {
   });
 }
 
-startServer().catch(console.error);
+startServer().catch(() => {
+  console.error('Server startup failed. Check JWT_SECRET and database connectivity.');
+  process.exitCode = 1;
+});

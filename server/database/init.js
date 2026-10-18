@@ -7,9 +7,9 @@ export const initializeDatabase = async () => {
     await prisma.$connect();
     console.log('✅ Connected to PostgreSQL database via Prisma');
     console.log('✅ Database initialized successfully');
-  } catch (error) {
-    console.error('❌ Error connecting to database:', error);
-    throw error;
+  } catch {
+    console.error('Database connection failed. Check DATABASE_URL and database availability.');
+    throw new Error('Database connection failed.');
   }
 };
 
